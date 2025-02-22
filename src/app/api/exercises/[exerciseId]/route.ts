@@ -4,9 +4,10 @@ import type { Exercise, ExerciseTest } from "@/types/database";
 
 export async function PUT(
   request: Request,
-  { params }: { params: { exerciseId: string } }
+  context: { params: { exerciseId: string } }
 ) {
   try {
+    const exerciseId = context.params.exerciseId;
     const supabase = await createClient();
 
     // Vérifier l'authentification
@@ -20,9 +21,13 @@ export async function PUT(
     }
 
     // Vérifier le rôle admin
-    const isAdmin =
-      user.role === "admin" || user.user_metadata?.role === "admin";
-    if (!isAdmin) {
+    const { data: adminCheck } = await supabase
+      .from("admin_users")
+      .select("id")
+      .eq("user_id", user.id)
+      .single();
+
+    if (!adminCheck) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
     }
 
@@ -31,7 +36,7 @@ export async function PUT(
 
     // Log des données avant mise à jour
     console.log("Données de l'exercice à mettre à jour:", {
-      id: params.exerciseId,
+      id: exerciseId,
       ...exercise,
     });
 
@@ -42,7 +47,7 @@ export async function PUT(
         ...exercise,
         updated_at: new Date().toISOString(),
       })
-      .eq("id", params.exerciseId)
+      .eq("id", exerciseId)
       .select()
       .single();
 
@@ -64,7 +69,7 @@ export async function PUT(
     const { error: deleteError } = await supabase
       .from("exercise_tests")
       .delete()
-      .eq("exercise_id", params.exerciseId);
+      .eq("exercise_id", exerciseId);
 
     if (deleteError) {
       console.error(
@@ -85,7 +90,7 @@ export async function PUT(
       const testsWithExerciseId = tests.map(
         (test: Omit<ExerciseTest, "id" | "exercise_id" | "created_at">) => ({
           ...test,
-          exercise_id: params.exerciseId,
+          exercise_id: exerciseId,
           created_by: user.id,
         })
       );

@@ -23,6 +23,8 @@ const initialFormData: FormData = {
   technologies: [],
   initial_code: "",
   tests: [],
+  language: "javascript",
+  created_by: "",
 };
 
 export default function ExerciseFormPage() {
@@ -113,6 +115,7 @@ export default function ExerciseFormPage() {
           description: "",
           validation_code: "",
           error_message: "",
+          created_by: user?.id || "",
         },
       ],
     }));
@@ -301,13 +304,21 @@ export default function ExerciseFormPage() {
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="initial_code" className="text-sm font-medium">
-                Code initial
-              </label>
+              <div className="flex items-center justify-between">
+                <label htmlFor="initial_code" className="text-sm font-medium">
+                  Code initial
+                </label>
+                <button
+                  onClick={() => setShowPreview(!showPreview)}
+                  className="text-xs text-primary hover:underline"
+                >
+                  {showPreview ? "Masquer l'aperçu" : "Voir l'aperçu"}
+                </button>
+              </div>
               <div className="border border-input rounded-md overflow-hidden">
                 <CodeEditor
                   code={formData.initial_code}
-                  language="html"
+                  language={formData.language}
                   onChange={(value) =>
                     setFormData((prev) => ({
                       ...prev,
@@ -316,6 +327,169 @@ export default function ExerciseFormPage() {
                   }
                 />
               </div>
+              {showPreview && (
+                <div className="bg-card border border-border rounded-lg overflow-hidden">
+                  <div className="p-4 border-b border-border">
+                    <h2 className="font-medium">
+                      {formData.language === "html" ||
+                      formData.language === "css"
+                        ? "Aperçu"
+                        : "Console"}
+                    </h2>
+                  </div>
+                  <div className="p-4">
+                    {formData.language === "html" ||
+                    formData.language === "css" ? (
+                      <iframe
+                        srcDoc={formData.initial_code}
+                        className="w-full h-[400px] border-0 bg-white"
+                        title="Aperçu"
+                      />
+                    ) : (
+                      <div className="font-mono bg-[#1e1e1e] text-white p-4 h-[400px] overflow-auto">
+                        {(() => {
+                          try {
+                            const logs: Array<{
+                              type: "input" | "output" | "error" | "result";
+                              content: string;
+                            }> = [];
+                            const originalConsole = console.log;
+
+                            // Créer un contexte d'exécution isolé
+                            const context: Record<string, unknown> = {};
+                            const contextEval = (code: string) => {
+                              return new Function(
+                                "context",
+                                "console",
+                                `with (context) { return ${code} }`
+                              )(context, {
+                                log: (...args: unknown[]) => {
+                                  logs.push({
+                                    type: "output",
+                                    content: args
+                                      .map((arg) =>
+                                        typeof arg === "undefined"
+                                          ? "undefined"
+                                          : arg === null
+                                          ? "null"
+                                          : typeof arg === "object"
+                                          ? JSON.stringify(arg, null, 2)
+                                          : String(arg)
+                                      )
+                                      .join(" "),
+                                  });
+                                },
+                              });
+                            };
+
+                            // Séparer le code en expressions
+                            const expressions = formData.initial_code
+                              .split(";")
+                              .filter(Boolean);
+
+                            // Exécuter chaque expression dans le même contexte
+                            expressions.forEach((expr, i) => {
+                              const trimmedExpr = expr.trim();
+                              if (trimmedExpr) {
+                                logs.push({
+                                  type: "input",
+                                  content:
+                                    trimmedExpr +
+                                    (i < expressions.length - 1 ? ";" : ""),
+                                });
+
+                                try {
+                                  // Pour les déclarations de variables
+                                  if (
+                                    trimmedExpr.startsWith("const ") ||
+                                    trimmedExpr.startsWith("let ") ||
+                                    trimmedExpr.startsWith("var ")
+                                  ) {
+                                    const declaration = trimmedExpr.match(
+                                      /^(const|let|var)\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=\s*(.+)$/
+                                    );
+                                    if (declaration) {
+                                      const [, , name, value] = declaration;
+                                      const evaluatedValue = contextEval(value);
+                                      context[name] = evaluatedValue;
+                                    }
+                                  } else {
+                                    const result = contextEval(trimmedExpr);
+                                    if (
+                                      typeof result !== "undefined" &&
+                                      !trimmedExpr.includes("console.log")
+                                    ) {
+                                      logs.push({
+                                        type: "result",
+                                        content:
+                                          typeof result === "object"
+                                            ? JSON.stringify(result, null, 2)
+                                            : String(result),
+                                      });
+                                    }
+                                  }
+                                } catch (err) {
+                                  logs.push({
+                                    type: "error",
+                                    content:
+                                      err instanceof Error
+                                        ? err.message
+                                        : String(err),
+                                  });
+                                }
+                              }
+                            });
+
+                            // Restaurer console.log
+                            console.log = originalConsole;
+
+                            return (
+                              <div className="space-y-2">
+                                {logs.map((log, i) => (
+                                  <div key={i} className="font-mono">
+                                    {log.type === "input" ? (
+                                      <div className="flex items-start gap-2">
+                                        <span className="text-[#608b4e]">
+                                          {">"}
+                                        </span>
+                                        <span className="text-[#d4d4d4]">
+                                          {log.content}
+                                        </span>
+                                      </div>
+                                    ) : log.type === "output" ? (
+                                      <div className="text-[#9cdcfe] pl-4">
+                                        {log.content}
+                                      </div>
+                                    ) : log.type === "error" ? (
+                                      <div className="text-[#f14c4c] pl-4">
+                                        {"Uncaught " + log.content}
+                                      </div>
+                                    ) : (
+                                      <div className="text-[#808080] pl-4">
+                                        {"< " + log.content}
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            );
+                          } catch (error: unknown) {
+                            return (
+                              <div className="text-[#f14c4c]">
+                                {`Uncaught ${
+                                  error instanceof Error
+                                    ? error.message
+                                    : String(error)
+                                }`}
+                              </div>
+                            );
+                          }
+                        })()}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

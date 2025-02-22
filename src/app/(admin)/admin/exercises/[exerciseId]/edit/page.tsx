@@ -24,6 +24,7 @@ const initialFormData: FormData = {
   initial_code: "",
   tests: [],
   created_by: "",
+  language: "javascript",
 };
 
 export default function EditExercisePage() {
@@ -281,6 +282,27 @@ export default function EditExercisePage() {
             </div>
 
             <div className="space-y-2">
+              <label htmlFor="language" className="text-sm font-medium">
+                Langage
+              </label>
+              <select
+                id="language"
+                value={formData.language}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, language: e.target.value }))
+                }
+                className="w-full px-3 py-2 bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                <option value="html">HTML</option>
+                <option value="css">CSS</option>
+                <option value="javascript">JavaScript</option>
+                <option value="typescript">TypeScript</option>
+                <option value="jsx">JSX</option>
+                <option value="tsx">TSX</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label htmlFor="instructions" className="text-sm font-medium">
                   Instructions (Markdown)
@@ -337,7 +359,7 @@ Décrivez l'exercice ici...
                     initial_code: value || "",
                   }))
                 }
-                language="javascript"
+                language={formData.language}
               />
             </div>
 
@@ -399,7 +421,7 @@ Décrivez l'exercice ici...
                         onChange={(value: string | undefined) =>
                           updateTest(index, "validation_code", value || "")
                         }
-                        language="javascript"
+                        language={formData.language}
                       />
                     </div>
                     <div className="space-y-2">

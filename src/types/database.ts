@@ -10,6 +10,7 @@ export interface Exercise {
   technologies: string[];
   instructions: string;
   initial_code: string;
+  language: string;
   created_at: string;
   updated_at: string;
   created_by: string;
