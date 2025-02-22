@@ -55,11 +55,14 @@ export interface Module {
   created_at: string;
   title: string;
   description: string;
-  content?: string;
+  content: string;
   type: "article" | "video" | "exercise";
   video_url?: string;
   course_id: string;
-  sort_order: number;
+  order: number;
+  initial_code?: string;
+  language?: string;
+  tests?: string[];
 }
 
 export interface UserCourseProgress {

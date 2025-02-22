@@ -10,10 +10,17 @@ import { createClient } from "@/lib/supabase/client";
 import { useAppStore } from "@/store/use-app-store";
 import { Button } from "@/components/ui/button";
 import { YouTubeEmbed } from "@/components/ui/youtube-embed";
-import type { Course, Module, UserCourseProgress } from "@/types/database";
+import type {
+  Course,
+  Module,
+  UserCourseProgress,
+  Exercise,
+} from "@/types/database";
+import { ExerciseModule } from "@/components/exercise-module";
 
 interface ModuleWithCourse extends Module {
   course: Course;
+  exercise?: Exercise;
 }
 
 function extractYouTubeId(url: string): string {
@@ -51,13 +58,14 @@ export default function ModulePage() {
       try {
         const supabase = createClient();
 
-        // Récupérer le module avec son cours parent
+        // Récupérer le module avec son cours parent et l'exercice associé
         const { data: moduleData, error: moduleError } = await supabase
           .from("modules")
           .select(
             `
             *,
-            course:courses (*)
+            course:courses (*),
+            exercise:exercises (*)
           `
           )
           .eq("id", moduleId)
@@ -70,8 +78,6 @@ export default function ModulePage() {
           "Module data complet:",
           JSON.stringify(moduleData, null, 2)
         );
-        console.log("Type de content_type:", typeof moduleData?.content_type);
-        console.log("Type de type:", typeof moduleData?.type);
 
         // Récupérer la progression de l'utilisateur
         const { data: progressData, error: progressError } = await supabase
@@ -230,10 +236,22 @@ export default function ModulePage() {
             />
           )}
 
-          {module.type === "exercise" && (
-            <div>
-              <p>Exercice à venir...</p>
-              {/* On ajoutera ici le composant d'exercice */}
+          {module.type === "exercise" && module.exercise && (
+            <div className="space-y-6">
+              <div
+                className="prose dark:prose-invert max-w-none"
+                dangerouslySetInnerHTML={{
+                  __html: markdownToHtml(module.exercise.instructions),
+                }}
+              />
+              <Button
+                onClick={() =>
+                  router.push(`/dashboard/exercises/${module.exercise?.id}`)
+                }
+                className="w-full"
+              >
+                Ouvrir l'exercice
+              </Button>
             </div>
           )}
 
