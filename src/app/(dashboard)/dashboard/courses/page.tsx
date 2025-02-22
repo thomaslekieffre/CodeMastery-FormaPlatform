@@ -1,57 +1,103 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { useAppStore } from "@/store/use-app-store";
 import { CourseCard } from "@/components/courses/course-card";
 import { Search } from "lucide-react";
+import type { Course, UserCourseProgress, Module } from "@/types/database";
 
-// Données temporaires pour les cours (à remplacer par les données de Supabase)
-const courses = [
-  {
-    id: "html-css",
-    title: "HTML & CSS Fondamentaux",
-    description:
-      "Apprenez les bases du développement web avec HTML et CSS. Créez des sites web statiques et responsive.",
-    duration: "6 heures",
-    level: "débutant" as const,
-    studentsCount: 1234,
-    progress: 75,
-  },
-  {
-    id: "javascript-basics",
-    title: "JavaScript pour Débutants",
-    description:
-      "Découvrez JavaScript, le langage de programmation du web. Ajoutez de l'interactivité à vos sites.",
-    duration: "8 heures",
-    level: "débutant" as const,
-    studentsCount: 890,
-    progress: 30,
-  },
-  {
-    id: "react-fundamentals",
-    title: "React Fondamentaux",
-    description:
-      "Maîtrisez React, la bibliothèque JavaScript la plus populaire pour créer des interfaces utilisateur.",
-    duration: "10 heures",
-    level: "intermédiaire" as const,
-    studentsCount: 567,
-  },
-  {
-    id: "nextjs-advanced",
-    title: "Next.js Avancé",
-    description:
-      "Créez des applications web modernes avec Next.js. SSR, SSG, et plus encore.",
-    duration: "12 heures",
-    level: "avancé" as const,
-    studentsCount: 234,
-  },
-];
+interface CourseWithProgress extends Course {
+  progress?: UserCourseProgress;
+  modules?: Module[];
+}
 
 export default function CoursesPage() {
+  const [courses, setCourses] = useState<CourseWithProgress[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const { user } = useAppStore();
+
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        const supabase = createClient();
+
+        // Récupérer les cours avec leurs modules
+        const { data: coursesData, error: coursesError } = await supabase
+          .from("courses")
+          .select(
+            `
+            *,
+            modules (*)
+          `
+          )
+          .order("sort_order", { ascending: true });
+
+        if (coursesError) throw coursesError;
+
+        if (!user) {
+          setCourses(coursesData || []);
+          return;
+        }
+
+        // Récupérer la progression de l'utilisateur pour tous les cours
+        const { data: progressData, error: progressError } = await supabase
+          .from("user_course_progress")
+          .select("*")
+          .eq("user_id", user.id);
+
+        if (progressError) throw progressError;
+
+        // Combiner les cours avec leur progression
+        const coursesWithProgress =
+          coursesData?.map((course) => ({
+            ...course,
+            progress: progressData?.find((p) => p.course_id === course.id),
+          })) || [];
+
+        setCourses(coursesWithProgress);
+      } catch (err) {
+        console.error("Erreur lors de la récupération des cours:", err);
+        setError("Une erreur est survenue lors du chargement des cours.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCourses();
+  }, [user]);
 
   const filteredCourses = courses.filter((course) =>
     course.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="h-8 w-48 bg-muted rounded animate-pulse" />
+          <div className="h-10 w-full md:w-64 bg-muted rounded animate-pulse" />
+        </div>
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="h-64 bg-muted rounded-lg animate-pulse" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="rounded-lg border border-destructive bg-destructive/10 p-4 text-destructive">
+          {error}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -71,14 +117,22 @@ export default function CoursesPage() {
 
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {filteredCourses.map((course) => (
-          <CourseCard key={course.id} {...course} />
+          <CourseCard
+            key={course.id}
+            course={course}
+            progress={course.progress}
+            href={`/dashboard/courses/${course.id}`}
+            totalModules={course.modules?.length || 0}
+          />
         ))}
       </div>
 
       {filteredCourses.length === 0 && (
         <div className="text-center py-12">
           <p className="text-muted-foreground">
-            Aucun cours ne correspond à votre recherche.
+            {searchQuery
+              ? "Aucun cours ne correspond à votre recherche."
+              : "Aucun cours n'est disponible pour le moment."}
           </p>
         </div>
       )}

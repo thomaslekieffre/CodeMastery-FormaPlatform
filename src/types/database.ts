@@ -38,6 +38,41 @@ export interface UserProgress {
   updated_at: string;
 }
 
+export interface Course {
+  id: string;
+  created_at: string;
+  title: string;
+  description: string;
+  image_url?: string;
+  duration: string;
+  difficulty: "facile" | "moyen" | "difficile";
+  sort_order: number;
+  modules?: Module[];
+}
+
+export interface Module {
+  id: string;
+  created_at: string;
+  title: string;
+  description: string;
+  content?: string;
+  type: "article" | "video" | "exercise";
+  video_url?: string;
+  course_id: string;
+  sort_order: number;
+}
+
+export interface UserCourseProgress {
+  id: string;
+  created_at: string;
+  user_id: string;
+  course_id: string;
+  completed_modules: string[];
+  status: "not_started" | "in_progress" | "completed";
+  started_at: string;
+  completed_at?: string;
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -55,6 +90,23 @@ export interface Database {
         Row: UserProgress;
         Insert: Omit<UserProgress, "id" | "created_at" | "updated_at">;
         Update: Partial<Omit<UserProgress, "id" | "created_at" | "updated_at">>;
+      };
+      courses: {
+        Row: Course;
+        Insert: Omit<Course, "id" | "created_at" | "updated_at">;
+        Update: Partial<Omit<Course, "id" | "created_at" | "updated_at">>;
+      };
+      modules: {
+        Row: Module;
+        Insert: Omit<Module, "id" | "created_at" | "updated_at">;
+        Update: Partial<Omit<Module, "id" | "created_at" | "updated_at">>;
+      };
+      user_course_progress: {
+        Row: UserCourseProgress;
+        Insert: Omit<UserCourseProgress, "id" | "created_at" | "updated_at">;
+        Update: Partial<
+          Omit<UserCourseProgress, "id" | "created_at" | "updated_at">
+        >;
       };
     };
   };

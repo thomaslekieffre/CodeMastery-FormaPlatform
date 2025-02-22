@@ -1,87 +1,105 @@
-import { Clock, Users } from "lucide-react";
+"use client";
+
 import Link from "next/link";
+import Image from "next/image";
+import { Clock, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { Course, UserCourseProgress } from "@/types/database";
 
-type CourseLevel = "débutant" | "intermédiaire" | "avancé";
-
-interface CourseCardProps {
-  id: string;
-  title: string;
-  description: string;
-  duration: string;
-  level: CourseLevel;
-  studentsCount: number;
-  image?: string;
-  progress?: number;
-}
-
-const levelColors: Record<CourseLevel, string> = {
-  débutant: "bg-emerald-500",
-  intermédiaire: "bg-yellow-500",
-  avancé: "bg-red-500",
+type DifficultyColor = {
+  [K in Course["difficulty"]]: string;
 };
 
+const difficultyColors: DifficultyColor = {
+  facile: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100",
+  moyen:
+    "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100",
+  difficile: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100",
+};
+
+interface CourseCardProps {
+  course: Course;
+  progress?: UserCourseProgress;
+  href: string;
+  totalModules?: number;
+}
+
 export function CourseCard({
-  id,
-  title,
-  description,
-  duration,
-  level,
-  studentsCount,
-  image,
+  course,
   progress,
+  href,
+  totalModules = 0,
 }: CourseCardProps) {
+  const completedModules = progress?.completed_modules?.length || 0;
+  const progressPercentage =
+    totalModules > 0 ? Math.round((completedModules / totalModules) * 100) : 0;
+
   return (
     <Link
-      href={`/dashboard/courses/${id}`}
-      className="group block bg-card rounded-lg border border-border overflow-hidden hover:shadow-lg transition"
+      href={href}
+      className="group relative flex flex-col overflow-hidden rounded-lg border bg-card p-5 transition-all hover:border-primary"
     >
-      <div className="aspect-video relative bg-muted">
-        {image ? (
-          <img src={image} alt={title} className="object-cover w-full h-full" />
-        ) : (
-          <div className="absolute inset-0 bg-primary/5 flex items-center justify-center">
-            <span className="text-primary text-xl font-bold">{title[0]}</span>
-          </div>
-        )}
+      {course.image_url && (
+        <div className="relative mb-4 aspect-video w-full overflow-hidden rounded-md">
+          <Image
+            src={course.image_url}
+            alt={course.title}
+            fill
+            className="object-cover transition-transform group-hover:scale-105"
+          />
+        </div>
+      )}
+
+      <div className="flex items-start justify-between gap-4">
+        <div className="space-y-2">
+          <h3 className="font-semibold leading-none tracking-tight">
+            {course.title}
+          </h3>
+          <p className="text-sm text-muted-foreground line-clamp-2">
+            {course.description}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-4 flex items-center justify-between">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Clock className="h-4 w-4" />
+          <span>{course.duration}</span>
+        </div>
         <div
           className={cn(
-            "absolute top-2 right-2 px-2 py-1 rounded text-xs font-medium text-white",
-            levelColors[level]
+            "inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold",
+            difficultyColors[course.difficulty]
           )}
         >
-          {level}
+          {course.difficulty}
         </div>
       </div>
 
-      <div className="p-4">
-        <h3 className="font-semibold group-hover:text-primary transition">
-          {title}
-        </h3>
-        <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-          {description}
-        </p>
-
-        {progress !== undefined && (
-          <div className="mt-4 w-full bg-muted rounded-full h-1">
+      {progress && (
+        <div className="mt-4">
+          <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center gap-1 text-muted-foreground">
+              <BookOpen className="h-4 w-4" />
+              <span>
+                {completedModules} / {totalModules} modules
+              </span>
+            </div>
+            <span className="text-xs font-medium">{progressPercentage}%</span>
+          </div>
+          <div className="mt-2 h-1.5 w-full rounded-full bg-muted">
             <div
-              className="bg-primary h-1 rounded-full transition-all"
-              style={{ width: `${progress}%` }}
+              className="h-full rounded-full bg-primary transition-all"
+              style={{ width: `${progressPercentage}%` }}
             />
           </div>
-        )}
-
-        <div className="mt-4 flex items-center gap-4 text-sm text-muted-foreground">
-          <div className="flex items-center gap-1">
-            <Clock className="h-4 w-4" />
-            <span>{duration}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <Users className="h-4 w-4" />
-            <span>{studentsCount} étudiants</span>
-          </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            {progress.status === "completed" && "Terminé"}
+            {progress.status === "in_progress" && "En cours"}
+            {progress.status === "not_started" && "Non commencé"}
+          </p>
         </div>
-      </div>
+      )}
     </Link>
   );
 }

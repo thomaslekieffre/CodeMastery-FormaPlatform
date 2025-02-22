@@ -1,6 +1,7 @@
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import { ThemeProvider } from "@/components/theme-provider";
+import { createClient } from "@/lib/supabase/client";
 import "./globals.css";
 
 export const metadata = {
@@ -13,6 +14,8 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const supabase = createClient();
+
   return (
     <html lang="fr" suppressHydrationWarning>
       <body
@@ -26,6 +29,20 @@ export default function RootLayout({
         >
           {children}
         </ThemeProvider>
+
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              const supabase = window.supabase;
+              supabase.auth.onAuthStateChange((event, session) => {
+                console.log("Auth state changed:", event, session);
+                if (event === 'SIGNED_IN') {
+                  console.log("User signed in:", session?.user);
+                }
+              });
+            `,
+          }}
+        />
       </body>
     </html>
   );
