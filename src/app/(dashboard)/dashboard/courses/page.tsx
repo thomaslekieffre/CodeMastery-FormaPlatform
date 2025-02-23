@@ -52,10 +52,39 @@ export default function CoursesPage() {
 
         // Combiner les cours avec leur progression
         const coursesWithProgress =
-          coursesData?.map((course) => ({
-            ...course,
-            progress: progressData?.find((p) => p.course_id === course.id),
-          })) || [];
+          coursesData?.map((course) => {
+            const progress = progressData?.find(
+              (p) => p.course_id === course.id
+            );
+
+            if (progress && course.modules) {
+              const isFullyCompleted = course.modules.every((module: Module) =>
+                progress.completed_modules.includes(module.id)
+              );
+
+              if (isFullyCompleted && progress.status !== "completed") {
+                // Mettre à jour le statut en base
+                void supabase
+                  .from("user_course_progress")
+                  .update({
+                    status: "completed",
+                    completed_at: new Date().toISOString(),
+                  })
+                  .eq("id", progress.id)
+                  .then(({ error: updateError }) => {
+                    if (!updateError) {
+                      progress.status = "completed";
+                      progress.completed_at = new Date().toISOString();
+                    }
+                  });
+              }
+            }
+
+            return {
+              ...course,
+              progress,
+            };
+          }) || [];
 
         setCourses(coursesWithProgress);
       } catch (err) {
