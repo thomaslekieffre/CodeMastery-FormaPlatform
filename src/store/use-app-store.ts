@@ -5,6 +5,9 @@ type User = {
   id: string;
   email: string;
   role: "admin" | "teacher" | "student";
+  user_metadata?: {
+    name?: string;
+  };
 };
 
 type AppState = {

@@ -5,12 +5,8 @@ import { createClient } from "@/lib/supabase/client";
 import { useAppStore } from "@/store/use-app-store";
 import { CourseCard } from "@/components/courses/course-card";
 import { Search } from "lucide-react";
-import type { Course, UserCourseProgress, Module } from "@/types/database";
-
-interface CourseWithProgress extends Course {
-  progress?: UserCourseProgress;
-  modules?: Module[];
-}
+import type { CourseWithProgress } from "@/types/database";
+import type { Module } from "@/types/database";
 
 export default function CoursesPage() {
   const [courses, setCourses] = useState<CourseWithProgress[]>([]);
@@ -57,13 +53,14 @@ export default function CoursesPage() {
               (p) => p.course_id === course.id
             );
 
+            // Calculer le statut correct
             if (progress && course.modules) {
               const isFullyCompleted = course.modules.every((module: Module) =>
                 progress.completed_modules.includes(module.id)
               );
 
+              // Mettre à jour le statut en base si nécessaire
               if (isFullyCompleted && progress.status !== "completed") {
-                // Mettre à jour le statut en base
                 void supabase
                   .from("user_course_progress")
                   .update({
@@ -82,7 +79,17 @@ export default function CoursesPage() {
 
             return {
               ...course,
-              progress,
+              progress: progress || {
+                id: "",
+                user_id: user.id,
+                course_id: course.id,
+                status: "not_started",
+                completed_modules: [],
+                started_at: null,
+                completed_at: null,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              },
             };
           }) || [];
 
@@ -107,11 +114,18 @@ export default function CoursesPage() {
       <div className="space-y-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="h-8 w-48 bg-muted rounded animate-pulse" />
-          <div className="h-10 w-full md:w-64 bg-muted rounded animate-pulse" />
+          <div className="w-full md:w-64 h-10 bg-muted rounded animate-pulse" />
         </div>
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-64 bg-muted rounded-lg animate-pulse" />
+            <div
+              key={i}
+              className="rounded-lg border bg-card p-6 animate-pulse"
+            >
+              <div className="h-4 w-3/4 bg-muted rounded mb-4" />
+              <div className="h-20 bg-muted rounded mb-4" />
+              <div className="h-2 w-1/2 bg-muted rounded" />
+            </div>
           ))}
         </div>
       </div>
@@ -120,16 +134,26 @@ export default function CoursesPage() {
 
   if (error) {
     return (
-      <div className="space-y-6">
-        <div className="rounded-lg border border-destructive bg-destructive/10 p-4 text-destructive">
-          {error}
-        </div>
+      <div className="rounded-lg border border-destructive bg-destructive/10 p-4 text-destructive">
+        {error}
       </div>
     );
   }
 
+  const inProgressCourses = filteredCourses.filter(
+    (course) => course.progress?.status === "in_progress"
+  );
+
+  const notStartedCourses = filteredCourses.filter(
+    (course) => course.progress?.status === "not_started"
+  );
+
+  const completedCourses = filteredCourses.filter(
+    (course) => course.progress?.status === "completed"
+  );
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <h2 className="text-2xl font-bold tracking-tight">Cours disponibles</h2>
         <div className="relative w-full md:w-64">
@@ -144,17 +168,56 @@ export default function CoursesPage() {
         </div>
       </div>
 
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {filteredCourses.map((course) => (
-          <CourseCard
-            key={course.id}
-            course={course}
-            progress={course.progress}
-            href={`/dashboard/courses/${course.id}`}
-            totalModules={course.modules?.length || 0}
-          />
-        ))}
-      </div>
+      {inProgressCourses.length > 0 && (
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">En cours</h3>
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {inProgressCourses.map((course) => (
+              <CourseCard
+                key={course.id}
+                course={course}
+                progress={course.progress}
+                href={`/dashboard/courses/${course.id}`}
+                totalModules={course.modules?.length || 0}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {notStartedCourses.length > 0 && (
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">À commencer</h3>
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {notStartedCourses.map((course) => (
+              <CourseCard
+                key={course.id}
+                course={course}
+                progress={course.progress}
+                href={`/dashboard/courses/${course.id}`}
+                totalModules={course.modules?.length || 0}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {completedCourses.length > 0 && (
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">Terminés</h3>
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {completedCourses.map((course) => (
+              <CourseCard
+                key={course.id}
+                course={course}
+                progress={course.progress}
+                href={`/dashboard/courses/${course.id}`}
+                totalModules={course.modules?.length || 0}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       {filteredCourses.length === 0 && (
         <div className="text-center py-12">
