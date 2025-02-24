@@ -3,6 +3,9 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
+import { SectionWrapper } from "@/components/ui/section-wrapper";
+import { cardStyles } from "@/components/ui/card-styles";
+import { cn } from "@/lib/utils";
 
 const plans = [
   {
@@ -33,44 +36,68 @@ const plans = [
 
 export function PricingSection() {
   return (
-    <section className="py-24">
-      <div className="container px-4 md:px-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-          {plans.map((plan, index) => (
-            <motion.div
-              key={index}
-              initial={{ y: 20, opacity: 0 }}
-              whileInView={{ y: 0, opacity: 1 }}
-              transition={{ delay: index * 0.1 }}
-              className={`p-8 rounded-xl border ${
-                plan.popular ? "border-violet-500 shadow-lg" : ""
-              }`}
-            >
-              <h3 className="text-2xl font-bold">{plan.name}</h3>
-              <div className="mt-4 flex items-baseline">
-                <span className="text-4xl font-bold">{plan.price}</span>
+    <SectionWrapper>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        className="text-center mb-16"
+      >
+        <h2 className="text-4xl font-bold text-white mb-4">
+          Tarifs <span className="text-violet-400">simples</span>
+        </h2>
+        <p className="text-xl text-gray-400">
+          Choisissez le plan qui correspond à vos besoins
+        </p>
+      </motion.div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+        {plans.map((plan, index) => (
+          <motion.div
+            key={plan.name}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.2 }}
+            className={cn(
+              cardStyles.base,
+              cardStyles.hover,
+              "p-8",
+              plan.popular && "border-violet-500/50"
+            )}
+          >
+            <div className="flex justify-between items-baseline mb-8">
+              <h3 className="text-2xl font-bold text-white">{plan.name}</h3>
+              <div className="text-right">
+                <span className="text-4xl font-bold text-white">
+                  {plan.price}
+                </span>
                 {plan.period && (
-                  <span className="text-gray-500 ml-1">{plan.period}</span>
+                  <span className="text-lg text-gray-400">{plan.period}</span>
                 )}
               </div>
-              <ul className="mt-8 space-y-4">
-                {plan.features.map((feature) => (
-                  <li key={feature} className="flex items-center">
-                    <Check className="w-5 h-5 text-violet-500 mr-2" />
-                    <span>{feature}</span>
-                  </li>
-                ))}
-              </ul>
-              <Button
-                className="w-full mt-8"
-                variant={plan.popular ? "default" : "outline"}
-              >
-                Choisir {plan.name}
-              </Button>
-            </motion.div>
-          ))}
-        </div>
+            </div>
+
+            <ul className="space-y-4 mb-8">
+              {plan.features.map((feature) => (
+                <li key={feature} className="flex items-center text-gray-400">
+                  <Check className="w-5 h-5 text-violet-400 mr-2 flex-shrink-0" />
+                  <span>{feature}</span>
+                </li>
+              ))}
+            </ul>
+
+            <Button
+              className={cn(
+                "w-full",
+                plan.popular
+                  ? "bg-violet-500 hover:bg-violet-600"
+                  : "bg-violet-500/10 hover:bg-violet-500/20"
+              )}
+            >
+              Choisir {plan.name}
+            </Button>
+          </motion.div>
+        ))}
       </div>
-    </section>
+    </SectionWrapper>
   );
 }
