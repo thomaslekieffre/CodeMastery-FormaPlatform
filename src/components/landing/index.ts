@@ -1,0 +1,9 @@
+export { CommunitySection } from "./community-section";
+export { CtaSection } from "./cta-section";
+export { FeaturesSection } from "./features-section";
+export { HeroSection } from "./hero-section";
+export { LearningPathSection } from "./learning-path-section";
+export { PricingSection } from "./pricing-section";
+export { ProjectsShowcase } from "./projects-showcase";
+export { StatisticsSection } from "./statistics-section";
+export { TestimonialsSection } from "./testimonials-section";

@@ -40,40 +40,43 @@ export interface UserProgress {
 
 export interface Course {
   id: string;
-  created_at: string;
   title: string;
   description: string;
-  image_url?: string;
+  image_url: string;
   duration: string;
   difficulty: "facile" | "moyen" | "difficile";
   sort_order: number;
-  modules?: Module[];
+  created_at: string;
+  created_by: string;
 }
 
 export interface Module {
   id: string;
-  created_at: string;
   title: string;
   description: string;
   content: string;
-  type: "article" | "video" | "exercise";
-  video_url?: string;
-  course_id: string;
+  type: "article" | "exercise";
   order: number;
-  initial_code?: string;
-  language?: string;
-  tests?: string[];
+  course_id: string;
+  created_at: string;
+  created_by: string;
 }
 
 export interface UserCourseProgress {
   id: string;
-  created_at: string;
   user_id: string;
   course_id: string;
-  completed_modules: string[];
   status: "not_started" | "in_progress" | "completed";
-  started_at: string;
-  completed_at?: string;
+  completed_modules: string[];
+  started_at: string | null;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CourseWithProgress extends Course {
+  progress?: UserCourseProgress;
+  modules?: Module[];
 }
 
 export interface Database {
