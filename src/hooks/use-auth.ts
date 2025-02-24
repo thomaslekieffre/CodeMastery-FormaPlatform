@@ -1,50 +1,14 @@
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
-import { useAppStore } from "@/store/use-app-store";
+import { useAuth as useAuthContext } from "@/components/auth/auth-provider";
 
-export const useAuth = () => {
-  const router = useRouter();
-  const { setUser, logout } = useAppStore();
-  const supabase = createClient();
-
-  useEffect(() => {
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session) {
-        setUser({
-          id: session.user.id,
-          email: session.user.email!,
-          role:
-            (session.user.user_metadata.role as
-              | "admin"
-              | "teacher"
-              | "student") || "student",
-        });
-      } else {
-        logout();
-      }
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [setUser, logout]);
-
-  const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (!error) {
-      logout();
-      router.push("/login");
-      router.refresh();
-
-      window.location.reload();
-    }
-    return { error };
-  };
+export function useAuth() {
+  const { session, user, isLoading, checkSession } = useAuthContext();
+  const isAuthenticated = !!session?.user;
 
   return {
-    signOut,
+    isAuthenticated,
+    isLoading,
+    user,
+    session,
+    checkSession,
   };
-};
+}
