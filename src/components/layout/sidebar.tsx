@@ -12,6 +12,7 @@ import {
   MessageSquare,
   Settings,
   Users,
+  UserCircle,
 } from "lucide-react";
 import { useAppStore } from "@/store/use-app-store";
 
@@ -21,6 +22,12 @@ const teacherRoutes = [
     icon: LayoutDashboard,
     href: "/dashboard",
     color: "text-sky-500",
+  },
+  {
+    label: "Mon profil",
+    icon: UserCircle,
+    href: "/dashboard/profile",
+    color: "text-yellow-500",
   },
   {
     label: "Cours",
@@ -61,6 +68,12 @@ const studentRoutes = [
     color: "text-sky-500",
   },
   {
+    label: "Mon profil",
+    icon: UserCircle,
+    href: "/dashboard/profile",
+    color: "text-yellow-500",
+  },
+  {
     label: "Mon parcours",
     icon: GraduationCap,
     href: "/dashboard/progress",
@@ -97,6 +110,12 @@ const adminRoutes = [
     icon: LayoutDashboard,
     href: "/dashboard",
     color: "text-sky-500",
+  },
+  {
+    label: "Mon profil",
+    icon: UserCircle,
+    href: "/dashboard/profile",
+    color: "text-yellow-500",
   },
   {
     label: "Gestion des exercices",

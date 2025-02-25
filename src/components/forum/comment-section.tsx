@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Loader2, MessageSquare } from "lucide-react";
+import { Loader2, MessageSquare, Reply, ThumbsUp } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { ErrorMessage } from "@/components/ui/error-message";
 import ReactMarkdown from "react-markdown";
@@ -15,6 +15,7 @@ import rehypeRaw from "rehype-raw";
 import rehypePrismPlus from "rehype-prism-plus";
 import { useForumStore } from "@/store/forum-store";
 import { Comment } from "@/types/forum";
+import { toast } from "sonner";
 
 interface CommentSectionProps {
   postId: string;
@@ -27,6 +28,7 @@ export function CommentSection({
 }: CommentSectionProps) {
   const [comments, setComments] = useState<Comment[]>(initialComments || []);
   const [newComment, setNewComment] = useState("");
+  const [replyToComment, setReplyToComment] = useState<Comment | null>(null);
   const [isLoading, setIsLoading] = useState(!initialComments);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -72,18 +74,55 @@ export function CommentSection({
       setIsSubmitting(true);
       setError(null);
 
-      const comment = await addComment(postId, newComment);
+      // Préparer le contenu du commentaire
+      let content = newComment;
 
-      if (comment) {
-        setComments((prev) => [...prev, comment]);
-        setNewComment("");
+      // Si c'est une réponse à un commentaire, ajouter une mention
+      if (replyToComment) {
+        content = `**@${replyToComment.author.name}** ${content}`;
+      }
+
+      console.log("Envoi du commentaire:", { postId, content });
+
+      try {
+        const comment = await addComment(postId, content);
+
+        if (comment) {
+          setComments((prev) => [...prev, comment]);
+          setNewComment("");
+          setReplyToComment(null);
+          toast.success("Commentaire ajouté avec succès");
+        } else {
+          throw new Error("Impossible d'ajouter le commentaire");
+        }
+      } catch (addError) {
+        console.error(
+          "Erreur spécifique lors de l'ajout du commentaire:",
+          addError
+        );
+        throw addError;
       }
     } catch (err) {
-      console.error("Error adding comment:", err);
-      setError(err instanceof Error ? err.message : "Une erreur est survenue");
+      console.error("Erreur lors de l'ajout du commentaire:", err);
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : "Une erreur inattendue s'est produite";
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleReplyClick = (comment: Comment) => {
+    setReplyToComment(comment);
+    // Focus sur la zone de texte
+    document.getElementById("comment-textarea")?.focus();
+  };
+
+  const cancelReply = () => {
+    setReplyToComment(null);
   };
 
   return (
@@ -139,6 +178,17 @@ export function CommentSection({
                         {comment.content}
                       </ReactMarkdown>
                     </div>
+                    <div className="flex items-center gap-4 mt-3">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 px-2 text-xs"
+                        onClick={() => handleReplyClick(comment)}
+                      >
+                        <Reply className="h-3 w-3 mr-1" />
+                        Répondre
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -148,10 +198,31 @@ export function CommentSection({
       )}
 
       <form onSubmit={handleSubmitComment} className="space-y-4">
+        {replyToComment && (
+          <div className="bg-muted p-3 rounded-md flex items-center justify-between mb-2">
+            <p className="text-sm">
+              Répondre à{" "}
+              <span className="font-medium">{replyToComment.author.name}</span>
+            </p>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={cancelReply}
+              className="h-7 px-2"
+            >
+              Annuler
+            </Button>
+          </div>
+        )}
+
         <Textarea
+          id="comment-textarea"
           placeholder={
             isAuthenticated
-              ? "Ajouter un commentaire..."
+              ? replyToComment
+                ? `Répondre à ${replyToComment.author.name}...`
+                : "Ajouter un commentaire..."
               : "Connectez-vous pour commenter"
           }
           value={newComment}

@@ -16,6 +16,9 @@ interface ForumStore {
   createPost: (post: Partial<ForumPost>) => Promise<void>;
   fetchComments: (postId: string) => Promise<Comment[]>;
   addComment: (postId: string, content: string) => Promise<Comment | null>;
+  likePost: (postId: string) => Promise<boolean>;
+  unlikePost: (postId: string) => Promise<boolean>;
+  checkIfUserLikedPost: (postId: string) => Promise<boolean>;
 }
 
 const handleError = (error: unknown) => {
@@ -326,8 +329,14 @@ export const useForumStore = create<ForumStore>((set, get) => ({
         throw new Error("Veuillez vous connecter pour ajouter un commentaire");
       }
 
+      console.log("Ajout d'un commentaire:", {
+        postId,
+        content,
+        userId: session.user.id,
+      });
+
       // Ajouter le commentaire
-      const { data: comment, error: commentError } = await supabase
+      const { data: comments, error: commentError } = await supabase
         .from("comments")
         .insert({
           post_id: postId,
@@ -335,10 +344,23 @@ export const useForumStore = create<ForumStore>((set, get) => ({
           content,
           created_at: new Date().toISOString(),
         })
-        .select()
-        .single();
+        .select();
 
-      if (commentError) throw commentError;
+      if (commentError) {
+        console.error("Erreur lors de l'ajout du commentaire:", commentError);
+        throw new Error(
+          commentError.message || "Erreur lors de l'ajout du commentaire"
+        );
+      }
+
+      if (!comments || comments.length === 0) {
+        console.error("Aucun commentaire retourné après insertion");
+        throw new Error("Erreur lors de l'ajout du commentaire");
+      }
+
+      // Prendre le premier commentaire retourné
+      const comment = comments[0];
+      console.log("Commentaire ajouté avec succès:", comment);
 
       // Récupérer le profil de l'auteur
       const { data: profile, error: profileError } = await supabase
@@ -347,10 +369,39 @@ export const useForumStore = create<ForumStore>((set, get) => ({
         .eq("id", session.user.id)
         .single();
 
-      if (profileError) throw profileError;
+      if (profileError) {
+        console.error(
+          "Erreur lors de la récupération du profil:",
+          profileError
+        );
+        throw new Error(
+          profileError.message || "Erreur lors de la récupération du profil"
+        );
+      }
 
-      // Mettre à jour le compteur de réponses du post
-      await supabase.rpc("increment_replies", { post_id: postId });
+      if (!profile) {
+        console.error("Profil non trouvé pour l'utilisateur:", session.user.id);
+      }
+
+      try {
+        // Mettre à jour le compteur de réponses du post
+        const { error: rpcError } = await supabase.rpc("increment_replies", {
+          post_id: postId,
+        });
+        if (rpcError) {
+          console.error(
+            "Erreur lors de l'incrémentation des réponses:",
+            rpcError
+          );
+          // On continue malgré l'erreur pour ne pas bloquer l'ajout du commentaire
+        }
+      } catch (rpcError) {
+        console.error(
+          "Exception lors de l'incrémentation des réponses:",
+          rpcError
+        );
+        // On continue malgré l'erreur
+      }
 
       // Formater le commentaire
       const formattedComment: Comment = {
@@ -367,10 +418,184 @@ export const useForumStore = create<ForumStore>((set, get) => ({
       return formattedComment;
     } catch (error) {
       console.error("Error adding comment:", error);
-      set({ error: handleError(error) });
-      return null;
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Une erreur inattendue s'est produite lors de l'ajout du commentaire";
+      set({ error: errorMessage });
+      throw new Error(errorMessage);
     } finally {
       set({ isLoading: false });
+    }
+  },
+
+  likePost: async (postId) => {
+    set({ isLoading: true, error: null });
+    try {
+      // Vérifier la session d'abord
+      const session = await getCurrentSession();
+      if (!session?.user) {
+        throw new Error("Veuillez vous connecter pour aimer ce post");
+      }
+
+      // Vérifier si l'utilisateur a déjà aimé ce post
+      const { data: existingLike, error: checkError } = await supabase
+        .from("post_likes")
+        .select("*")
+        .eq("post_id", postId)
+        .eq("user_id", session.user.id)
+        .single();
+
+      if (checkError && checkError.code !== "PGRST116") {
+        // PGRST116 est le code d'erreur pour "No rows returned"
+        throw checkError;
+      }
+
+      if (existingLike) {
+        console.log("User already liked this post");
+        return false; // L'utilisateur a déjà aimé ce post
+      }
+
+      // Ajouter le like
+      const { error: likeError } = await supabase.from("post_likes").insert({
+        post_id: postId,
+        user_id: session.user.id,
+        created_at: new Date().toISOString(),
+      });
+
+      if (likeError) throw likeError;
+
+      // Mettre à jour le compteur de likes du post
+      await supabase.rpc("increment_likes", { post_id: postId });
+
+      // Mettre à jour le post dans le state si présent
+      const currentPost = await get().fetchPostById(postId);
+      if (currentPost) {
+        const updatedPost = {
+          ...currentPost,
+          likesCount: currentPost.likesCount + 1,
+        };
+
+        // Mettre à jour le post dans la liste des posts si présent
+        const updatedPosts = get().posts.map((post) =>
+          post.id === postId
+            ? { ...post, likesCount: post.likesCount + 1 }
+            : post
+        );
+
+        set({ posts: updatedPosts });
+      }
+
+      return true;
+    } catch (error) {
+      console.error("Error liking post:", error);
+      set({ error: handleError(error) });
+      return false;
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  unlikePost: async (postId) => {
+    set({ isLoading: true, error: null });
+    try {
+      // Vérifier la session d'abord
+      const session = await getCurrentSession();
+      if (!session?.user) {
+        throw new Error("Veuillez vous connecter pour retirer votre like");
+      }
+
+      // Vérifier si l'utilisateur a aimé ce post
+      const { data: existingLike, error: checkError } = await supabase
+        .from("post_likes")
+        .select("*")
+        .eq("post_id", postId)
+        .eq("user_id", session.user.id)
+        .single();
+
+      if (checkError) {
+        if (checkError.code === "PGRST116") {
+          // L'utilisateur n'a pas aimé ce post
+          return false;
+        }
+        throw checkError;
+      }
+
+      if (!existingLike) {
+        return false; // L'utilisateur n'a pas aimé ce post
+      }
+
+      // Supprimer le like
+      const { error: unlikeError } = await supabase
+        .from("post_likes")
+        .delete()
+        .eq("post_id", postId)
+        .eq("user_id", session.user.id);
+
+      if (unlikeError) throw unlikeError;
+
+      // Mettre à jour le compteur de likes du post
+      await supabase.rpc("decrement_likes", { post_id: postId });
+
+      // Mettre à jour le post dans le state si présent
+      const currentPost = await get().fetchPostById(postId);
+      if (currentPost) {
+        const updatedPost = {
+          ...currentPost,
+          likesCount: Math.max(0, currentPost.likesCount - 1),
+        };
+
+        // Mettre à jour le post dans la liste des posts si présent
+        const updatedPosts = get().posts.map((post) =>
+          post.id === postId
+            ? { ...post, likesCount: Math.max(0, post.likesCount - 1) }
+            : post
+        );
+
+        set({ posts: updatedPosts });
+      }
+
+      return true;
+    } catch (error) {
+      console.error("Error unliking post:", error);
+      set({ error: handleError(error) });
+      return false;
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  checkIfUserLikedPost: async (postId) => {
+    try {
+      // Vérifier la session d'abord
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session?.user) {
+        return false; // Non connecté = pas de like
+      }
+
+      // Vérifier si l'utilisateur a aimé ce post
+      const { data, error } = await supabase
+        .from("post_likes")
+        .select("*")
+        .eq("post_id", postId)
+        .eq("user_id", session.user.id)
+        .single();
+
+      if (error) {
+        if (error.code === "PGRST116") {
+          // Pas de like trouvé
+          return false;
+        }
+        console.error("Error checking like status:", error);
+        return false;
+      }
+
+      return !!data;
+    } catch (error) {
+      console.error("Error checking like status:", error);
+      return false;
     }
   },
 }));

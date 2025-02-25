@@ -10,6 +10,7 @@ import {
   ThumbsUp,
   Share2,
   Loader2,
+  AlertCircle,
 } from "lucide-react";
 import { useForumStore } from "@/store/forum-store";
 import { ForumPost, Comment } from "@/types/forum";
@@ -22,8 +23,9 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import rehypePrismPlus from "rehype-prism-plus";
-import { AlertCircle } from "lucide-react";
 import Link from "next/link";
+import { useAuth } from "@/hooks/use-auth";
+import { toast } from "sonner";
 
 export default function ForumPostPage() {
   const params = useParams();
@@ -33,7 +35,10 @@ export default function ForumPostPage() {
   const [comments, setComments] = useState<Comment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [hasLiked, setHasLiked] = useState(false);
+  const [isLikeLoading, setIsLikeLoading] = useState(false);
   const forumStore = useForumStore();
+  const { isAuthenticated } = useAuth();
 
   useEffect(() => {
     let isMounted = true;
@@ -61,6 +66,14 @@ export default function ForumPostPage() {
         const fetchedComments = await forumStore.fetchComments(postId);
         if (!isMounted) return;
         setComments(fetchedComments);
+
+        // Vérifier si l'utilisateur a déjà aimé ce post
+        if (isAuthenticated) {
+          const liked = await forumStore.checkIfUserLikedPost(postId);
+          if (isMounted) {
+            setHasLiked(liked);
+          }
+        }
       } catch (err) {
         if (!isMounted) return;
         console.error("Error in loadPost:", err);
@@ -79,10 +92,60 @@ export default function ForumPostPage() {
     return () => {
       isMounted = false;
     };
-  }, [postId]);
+  }, [postId, isAuthenticated]);
 
   const handleGoBack = () => {
     router.back();
+  };
+
+  const handleLikeToggle = async () => {
+    if (!isAuthenticated) {
+      toast.error("Veuillez vous connecter pour aimer ce post");
+      return;
+    }
+
+    if (!post) return;
+
+    try {
+      setIsLikeLoading(true);
+
+      if (hasLiked) {
+        // Unlike the post
+        const success = await forumStore.unlikePost(post.id);
+        if (success) {
+          setHasLiked(false);
+          setPost((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  likesCount: Math.max(0, prev.likesCount - 1),
+                }
+              : null
+          );
+        }
+      } else {
+        // Like the post
+        const success = await forumStore.likePost(post.id);
+        if (success) {
+          setHasLiked(true);
+          setPost((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  likesCount: prev.likesCount + 1,
+                }
+              : null
+          );
+        }
+      }
+    } catch (err) {
+      console.error("Error toggling like:", err);
+      toast.error(
+        err instanceof Error ? err.message : "Une erreur est survenue"
+      );
+    } finally {
+      setIsLikeLoading(false);
+    }
   };
 
   if (isLoading) {
@@ -123,6 +186,7 @@ export default function ForumPostPage() {
             <p className="text-sm text-muted-foreground">
               {formatDistanceToNow(new Date(post.createdAt), {
                 addSuffix: true,
+                locale: fr,
               })}
             </p>
           </div>
@@ -143,8 +207,20 @@ export default function ForumPostPage() {
         </div>
 
         <div className="flex items-center gap-6 mt-8 pt-4 border-t">
-          <Button variant="ghost" size="sm" className="gap-2">
-            <ThumbsUp className="h-4 w-4" />
+          <Button
+            variant={hasLiked ? "default" : "ghost"}
+            size="sm"
+            className="gap-2"
+            onClick={handleLikeToggle}
+            disabled={isLikeLoading}
+          >
+            {isLikeLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <ThumbsUp
+                className={`h-4 w-4 ${hasLiked ? "fill-current" : ""}`}
+              />
+            )}
             <span>{post.likesCount}</span>
           </Button>
           <Button variant="ghost" size="sm" className="gap-2">

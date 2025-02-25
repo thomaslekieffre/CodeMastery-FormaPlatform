@@ -1,12 +1,23 @@
 "use client";
 
 import { useAuth } from "@/hooks/use-auth";
+import { useProfile } from "@/hooks/use-profile";
 import { useAppStore } from "@/store/use-app-store";
-import { Moon, Sun } from "lucide-react";
+import { Moon, Sun, User } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import Link from "next/link";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export function Header() {
-  const { user } = useAppStore();
-  const { signOut } = useAuth();
+  const { user, isAuthenticated } = useAuth();
+  const { profile } = useProfile();
   const { theme, setTheme } = useAppStore();
 
   const toggleTheme = () => {
@@ -34,20 +45,53 @@ export function Header() {
           )}
         </button>
 
-        <div className="flex items-center gap-x-2">
-          <div className="flex flex-col items-end">
-            <span className="text-sm font-medium">{user?.email}</span>
-            <span className="text-xs text-muted-foreground capitalize">
-              {user?.role}
-            </span>
-          </div>
-          <button
-            onClick={signOut}
-            className="ml-4 text-sm px-4 py-2 bg-destructive text-destructive-foreground rounded-md hover:bg-destructive/90"
-          >
-            Se déconnecter
-          </button>
-        </div>
+        {isAuthenticated && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex items-center gap-x-2 p-1 rounded-full hover:bg-primary/10 transition">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={profile?.avatar_url || undefined} />
+                  <AvatarFallback>
+                    {profile?.username
+                      ? profile.username.charAt(0).toUpperCase()
+                      : user?.email?.charAt(0).toUpperCase() || "U"}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-sm font-medium hidden sm:inline-block">
+                  {profile?.username ||
+                    user?.email?.split("@")[0] ||
+                    "Utilisateur"}
+                </span>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Mon compte</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/profile" className="cursor-pointer">
+                  <User className="mr-2 h-4 w-4" />
+                  <span>Profil</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/settings" className="cursor-pointer">
+                  <Sun className="mr-2 h-4 w-4" />
+                  <span>Paramètres</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="text-destructive focus:text-destructive"
+                onClick={() => {
+                  // Déconnexion
+                  window.location.href = "/api/auth/signout";
+                }}
+              >
+                Se déconnecter
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
     </div>
   );
