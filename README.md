@@ -8,8 +8,7 @@ CodeMastery est une plateforme éducative moderne destinée aux débutants en d�
 
 ### Système d'Authentification
 
-- Connexion via OAuth (Discord)
-- Authentification par email/mot de passe
+- Authentification par magic link
 - Gestion des rôles (Admin, Formateur, Apprenant)
 - Profils utilisateurs personnalisables
 
@@ -32,7 +31,6 @@ CodeMastery est une plateforme éducative moderne destinée aux débutants en d�
 
 - Forum de discussion intégré
 - Système de commentaires sous les cours
-- Fonctionnalité de mentorat entre apprenants
 - Partage de projets et de solutions
 
 ### Interface Utilisateur
@@ -72,43 +70,6 @@ CodeMastery est une plateforme éducative moderne destinée aux débutants en d�
 - **PNPM** comme gestionnaire de paquets
 - **Vercel** pour le déploiement
 
-## 📋 Prérequis
-
-- Node.js 18.17.0 ou plus récent
-- PNPM 8.0.0 ou plus récent
-- Compte Supabase pour la base de données
-
-## 🚀 Installation
-
-1. Clonez le dépôt
-
-   ```bash
-   git clone https://github.com/votre-username/codemastery.git
-   cd codemastery
-   ```
-
-2. Installez les dépendances
-
-   ```bash
-   pnpm install
-   ```
-
-3. Configurez les variables d'environnement
-
-   ```bash
-   cp .env.example .env.local
-   ```
-
-   Remplissez les variables dans `.env.local` avec vos propres valeurs.
-
-4. Lancez le serveur de développement
-
-   ```bash
-   pnpm dev
-   ```
-
-5. Ouvrez [http://localhost:3000](http://localhost:3000) dans votre navigateur
-
 ## 📁 Structure du Projet
 
 ```
@@ -131,27 +92,13 @@ codemastery/
 └── ...
 ```
 
-## 🧪 Tests
-
-```bash
-pnpm test
-```
-
-## 🚀 Déploiement
-
-Le projet est configuré pour être déployé sur Vercel. Connectez votre dépôt GitHub à Vercel pour un déploiement automatique à chaque push.
-
-```bash
-pnpm build
-```
-
 ## 📝 Licence
 
 Ce projet est sous licence [MIT](LICENSE).
 
 ## 👥 Contributeurs
 
-- [Votre Nom](https://github.com/votre-username)
+- [Lekieffre Thomas](https://github.com/thomaslekieffre)
 
 ## 🙏 Remerciements
 
