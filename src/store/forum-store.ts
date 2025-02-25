@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { ForumFilter, ForumPost } from "@/types/forum";
+import { ForumFilter, ForumPost, Comment } from "@/types/forum";
 import { supabase } from "@/lib/supabase/client";
 import { PostgrestError } from "@supabase/supabase-js";
 
@@ -12,7 +12,10 @@ interface ForumStore {
   setFilter: (filter: ForumFilter) => void;
   setSearchQuery: (query: string) => void;
   fetchPosts: () => Promise<void>;
+  fetchPostById: (id: string) => Promise<ForumPost | null>;
   createPost: (post: Partial<ForumPost>) => Promise<void>;
+  fetchComments: (postId: string) => Promise<Comment[]>;
+  addComment: (postId: string, content: string) => Promise<Comment | null>;
 }
 
 const handleError = (error: unknown) => {
@@ -154,6 +157,71 @@ export const useForumStore = create<ForumStore>((set, get) => ({
     }
   },
 
+  fetchPostById: async (id) => {
+    set({ isLoading: true, error: null });
+    try {
+      console.log("Fetching post with ID:", id);
+
+      // D'abord, récupérer le post
+      const { data: post, error: postError } = await supabase
+        .from("posts")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+      console.log("Post response:", { post, postError });
+
+      if (postError) {
+        console.error("Error fetching post:", postError);
+        throw postError;
+      }
+
+      if (!post) {
+        console.error("Post not found for ID:", id);
+        throw new Error("Post non trouvé");
+      }
+
+      // Ensuite, récupérer le profil de l'auteur
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", post.user_id)
+        .single();
+
+      console.log("Profile response:", { profile, profileError });
+
+      if (profileError) {
+        console.warn("Error fetching profile:", profileError);
+        // On continue avec un profil par défaut plutôt que de faire échouer toute la requête
+      }
+
+      // Formater le post
+      const formattedPost: ForumPost = {
+        id: post.id,
+        title: post.title,
+        content: post.content,
+        category: post.category || "Général",
+        createdAt: post.created_at,
+        likesCount: post.likes || 0,
+        repliesCount: post.replies || 0,
+        authorId: post.user_id,
+        author: {
+          name: profile?.username || "Utilisateur inconnu",
+          avatar: profile?.avatar_url || "https://via.placeholder.com/150",
+        },
+      };
+
+      console.log("Formatted post:", formattedPost);
+      return formattedPost;
+    } catch (error) {
+      console.error("Error in fetchPostById:", error);
+      set({ error: handleError(error) });
+      return null;
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
   createPost: async (post) => {
     set({ isLoading: true, error: null });
     try {
@@ -190,6 +258,117 @@ export const useForumStore = create<ForumStore>((set, get) => ({
       console.error("Error in createPost:", error);
       set({ error: handleError(error) });
       throw error;
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  fetchComments: async (postId) => {
+    set({ isLoading: true, error: null });
+    try {
+      // Récupérer les commentaires
+      const { data: comments, error: commentsError } = await supabase
+        .from("comments")
+        .select("*")
+        .eq("post_id", postId)
+        .order("created_at", { ascending: true });
+
+      if (commentsError) throw commentsError;
+
+      // Récupérer les profils des auteurs
+      const userIds = comments?.map((comment) => comment.user_id) || [];
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("*")
+        .in("id", userIds);
+
+      if (profilesError) throw profilesError;
+
+      // Créer un map des profils pour un accès rapide
+      const profileMap = new Map(
+        profiles?.map((profile) => [profile.id, profile])
+      );
+
+      // Formater les commentaires
+      const formattedComments: Comment[] =
+        comments?.map((comment) => {
+          const profile = profileMap.get(comment.user_id);
+          return {
+            id: comment.id,
+            content: comment.content,
+            createdAt: comment.created_at,
+            author: {
+              id: comment.user_id,
+              name: profile?.username || "Utilisateur inconnu",
+              avatar: profile?.avatar_url || "https://via.placeholder.com/150",
+            },
+          };
+        }) || [];
+
+      return formattedComments;
+    } catch (error) {
+      console.error("Error fetching comments:", error);
+      set({ error: handleError(error) });
+      return [];
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  addComment: async (postId, content) => {
+    set({ isLoading: true, error: null });
+    try {
+      // Vérifier la session d'abord
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session?.user) {
+        throw new Error("Veuillez vous connecter pour ajouter un commentaire");
+      }
+
+      // Ajouter le commentaire
+      const { data: comment, error: commentError } = await supabase
+        .from("comments")
+        .insert({
+          post_id: postId,
+          user_id: session.user.id,
+          content,
+          created_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
+
+      if (commentError) throw commentError;
+
+      // Récupérer le profil de l'auteur
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", session.user.id)
+        .single();
+
+      if (profileError) throw profileError;
+
+      // Mettre à jour le compteur de réponses du post
+      await supabase.rpc("increment_replies", { post_id: postId });
+
+      // Formater le commentaire
+      const formattedComment: Comment = {
+        id: comment.id,
+        content: comment.content,
+        createdAt: comment.created_at,
+        author: {
+          id: comment.user_id,
+          name: profile?.username || "Utilisateur inconnu",
+          avatar: profile?.avatar_url || "https://via.placeholder.com/150",
+        },
+      };
+
+      return formattedComment;
+    } catch (error) {
+      console.error("Error adding comment:", error);
+      set({ error: handleError(error) });
+      return null;
     } finally {
       set({ isLoading: false });
     }

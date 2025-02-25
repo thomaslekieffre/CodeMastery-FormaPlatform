@@ -3,15 +3,22 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, MessageSquare, Users, TrendingUp, Clock } from "lucide-react";
+import {
+  Search,
+  MessageSquare,
+  Users,
+  TrendingUp,
+  Clock,
+  Plus,
+} from "lucide-react";
 import { ForumCard } from "@/components/forum/forum-card";
 import { PopularTopics } from "@/components/forum/popular-topics";
 import { TopContributors } from "@/components/forum/top-contributors";
 import { useForumStore } from "@/store/forum-store";
 import { useEffect } from "react";
-import { CreatePostDialog } from "@/components/forum/create-post-dialog";
 import { ErrorMessage } from "@/components/ui/error-message";
 import { Loader2 } from "lucide-react";
+import Link from "next/link";
 
 export default function ForumPage() {
   const {
@@ -40,7 +47,12 @@ export default function ForumPage() {
             connaissances
           </p>
         </div>
-        <CreatePostDialog />
+        <Link href="/dashboard/forum/new">
+          <Button>
+            <Plus className="w-4 h-4 mr-2" />
+            Nouvelle discussion
+          </Button>
+        </Link>
       </div>
 
       {/* Search and filters */}
