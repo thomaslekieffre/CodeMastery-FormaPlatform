@@ -19,10 +19,7 @@ import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 import { ErrorMessage } from "@/components/ui/error-message";
 import { Badge } from "@/components/ui/badge";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import rehypeRaw from "rehype-raw";
-import rehypePrismPlus from "rehype-prism-plus";
+import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 import Link from "next/link";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
@@ -198,12 +195,7 @@ export default function ForumPostPage() {
         </Badge>
 
         <div className="prose dark:prose-invert max-w-none mt-6">
-          <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
-            rehypePlugins={[rehypeRaw, rehypePrismPlus]}
-          >
-            {post.content}
-          </ReactMarkdown>
+          <MarkdownRenderer content={post.content} />
         </div>
 
         <div className="flex items-center gap-6 mt-8 pt-4 border-t">
