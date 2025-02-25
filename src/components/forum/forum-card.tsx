@@ -1,3 +1,5 @@
+"use client";
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { MessageSquare, ThumbsUp } from "lucide-react";
@@ -12,51 +14,45 @@ interface ForumCardProps {
 
 export function ForumCard({ post }: ForumCardProps) {
   return (
-    <div className="p-6 rounded-xl border bg-card hover:bg-card/80 transition-colors">
-      <div className="flex items-start gap-4">
-        <Avatar>
-          <AvatarImage src={post.author.avatar} />
-          <AvatarFallback>{post.author.name[0]}</AvatarFallback>
-        </Avatar>
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1">
-            <Link
-              href={`/dashboard/forum/${post.id}`}
-              className="font-semibold hover:text-violet-400 transition-colors"
-            >
-              {post.title}
-            </Link>
-            <Badge variant="outline" className="text-violet-400">
-              {post.category}
-            </Badge>
-          </div>
-          <p className="text-sm text-gray-400 line-clamp-2 mb-4">
-            {post.content}
-          </p>
-          <div className="flex items-center gap-4 text-sm text-gray-400">
-            <div className="flex items-center gap-1">
-              <MessageSquare className="w-4 h-4" />
-              <span>{post.repliesCount} réponses</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <ThumbsUp className="w-4 h-4" />
-              <span>{post.likesCount} likes</span>
-            </div>
-            <span>
+    <Link href={`/dashboard/forum/${post.id}`} className="block">
+      <div className="bg-card rounded-lg p-6 hover:bg-card/80 transition-colors">
+        <div className="flex items-center gap-4 mb-4">
+          <Avatar>
+            <AvatarImage src={post.author.avatar} alt={post.author.name} />
+            <AvatarFallback>{post.author.name.charAt(0)}</AvatarFallback>
+          </Avatar>
+          <div>
+            <h3 className="font-medium">{post.author.name}</h3>
+            <p className="text-sm text-gray-400">
               {formatDistanceToNow(new Date(post.createdAt), {
                 addSuffix: true,
                 locale: fr,
               })}
-            </span>
-            <Link
-              href={`/dashboard/forum/${post.id}`}
-              className="text-violet-400 hover:underline ml-auto"
-            >
-              Voir la discussion
-            </Link>
+            </p>
+          </div>
+        </div>
+
+        <h2 className="text-xl font-bold mb-2">{post.title}</h2>
+        <p className="text-gray-400 mb-4 line-clamp-2">
+          {post.content.replace(/[#*`]/g, "")}
+        </p>
+
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Badge variant="outline">{post.category}</Badge>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center text-gray-400">
+              <ThumbsUp className="w-4 h-4 mr-1" />
+              <span>{post.likesCount}</span>
+            </div>
+            <div className="flex items-center text-gray-400">
+              <MessageSquare className="w-4 h-4 mr-1" />
+              <span>{post.repliesCount}</span>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </Link>
   );
 }

@@ -13,4 +13,15 @@ export type ForumPost = {
   repliesCount: number;
 };
 
+export type Comment = {
+  id: string;
+  content: string;
+  createdAt: string;
+  author: {
+    id: string;
+    name: string;
+    avatar: string;
+  };
+};
+
 export type ForumFilter = "popular" | "recent" | "unanswered";

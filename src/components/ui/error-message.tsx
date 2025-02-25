@@ -2,13 +2,18 @@ import { AlertCircle } from "lucide-react";
 
 interface ErrorMessageProps {
   message: string;
+  className?: string;
 }
 
-export function ErrorMessage({ message }: ErrorMessageProps) {
+export function ErrorMessage({ message, className }: ErrorMessageProps) {
   return (
-    <div className="flex items-center gap-2 p-4 text-red-500 bg-red-500/10 rounded-lg">
-      <AlertCircle className="w-5 h-5" />
-      <p>{message}</p>
+    <div
+      className={`bg-destructive/15 text-destructive p-3 rounded-md flex items-center gap-2 ${
+        className || ""
+      }`}
+    >
+      <AlertCircle className="h-4 w-4" />
+      <p className="text-sm">{message}</p>
     </div>
   );
 }
