@@ -20,6 +20,7 @@ import {
   Lightbulb,
   FileWarning,
 } from "lucide-react";
+import { Heading, Paragraph } from "./typography";
 
 interface MarkdownRendererProps {
   content: string;
@@ -100,17 +101,23 @@ export function MarkdownRenderer({
         rehypePlugins={[rehypeRaw]}
         components={{
           h1: ({ node, ...props }) => (
-            <h1 className="text-3xl font-bold mb-4 pb-2 border-b" {...props} />
+            <Heading
+              as="h1"
+              size="h1"
+              className="mb-4 pb-2 border-b"
+              {...props}
+            />
           ),
           h2: ({ node, ...props }) => (
-            <h2 className="text-2xl font-bold mt-8 mb-4" {...props} />
+            <Heading as="h2" size="h2" className="mt-8 mb-4" {...props} />
           ),
           h3: ({ node, ...props }) => (
-            <h3 className="text-xl font-bold mt-6 mb-3" {...props} />
+            <Heading as="h3" size="h3" className="mt-6 mb-3" {...props} />
           ),
           h4: ({ node, ...props }) => (
-            <h4 className="text-lg font-bold mt-4 mb-2" {...props} />
+            <Heading as="h4" size="h4" className="mt-4 mb-2" {...props} />
           ),
+          p: ({ node, ...props }) => <Paragraph className="my-4" {...props} />,
           blockquote: ({ node, className, children, ...props }: any) => {
             // Convertir les enfants en texte pour analyse
             let textContent = "";

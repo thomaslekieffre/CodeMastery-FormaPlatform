@@ -7,6 +7,14 @@ import Link from "next/link";
 import { ForumPost } from "@/types/forum";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Heading, Paragraph } from "@/components/ui/typography";
 
 interface ForumCardProps {
   post: ForumPost;
@@ -15,29 +23,35 @@ interface ForumCardProps {
 export function ForumCard({ post }: ForumCardProps) {
   return (
     <Link href={`/dashboard/forum/${post.id}`} className="block">
-      <div className="bg-card rounded-lg p-6 hover:bg-card/80 transition-colors">
-        <div className="flex items-center gap-4 mb-4">
-          <Avatar>
-            <AvatarImage src={post.author.avatar} alt={post.author.name} />
-            <AvatarFallback>{post.author.name.charAt(0)}</AvatarFallback>
-          </Avatar>
-          <div>
-            <h3 className="font-medium">{post.author.name}</h3>
-            <p className="text-sm text-gray-400">
-              {formatDistanceToNow(new Date(post.createdAt), {
-                addSuffix: true,
-                locale: fr,
-              })}
-            </p>
+      <Card className="hover:bg-black/50 transition-colors">
+        <CardHeader className="pb-2">
+          <div className="flex items-center gap-4">
+            <Avatar>
+              <AvatarImage src={post.author.avatar} alt={post.author.name} />
+              <AvatarFallback>{post.author.name.charAt(0)}</AvatarFallback>
+            </Avatar>
+            <div>
+              <Heading as="h3" size="h5" className="font-medium">
+                {post.author.name}
+              </Heading>
+              <Paragraph size="sm" colorScheme="muted">
+                {formatDistanceToNow(new Date(post.createdAt), {
+                  addSuffix: true,
+                  locale: fr,
+                })}
+              </Paragraph>
+            </div>
           </div>
-        </div>
+        </CardHeader>
 
-        <h2 className="text-xl font-bold mb-2">{post.title}</h2>
-        <p className="text-gray-400 mb-4 line-clamp-2">
-          {post.content.replace(/[#*`]/g, "")}
-        </p>
+        <CardContent>
+          <CardTitle className="mb-2">{post.title}</CardTitle>
+          <Paragraph colorScheme="muted" className="mb-4 line-clamp-2">
+            {post.content.replace(/[#*`]/g, "")}
+          </Paragraph>
+        </CardContent>
 
-        <div className="flex items-center justify-between">
+        <CardFooter className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Badge variant="outline">{post.category}</Badge>
           </div>
@@ -51,8 +65,8 @@ export function ForumCard({ post }: ForumCardProps) {
               <span>{post.repliesCount}</span>
             </div>
           </div>
-        </div>
-      </div>
+        </CardFooter>
+      </Card>
     </Link>
   );
 }

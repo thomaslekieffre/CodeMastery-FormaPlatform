@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Upload, User } from "lucide-react";
 import { toast } from "sonner";
+import { Heading, Paragraph } from "@/components/ui/typography";
 
 export function ProfileEditor() {
   const { profile, isLoading, updateProfile, uploadAvatar } = useProfile();
@@ -101,16 +102,16 @@ export function ProfileEditor() {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <Loader2 className="h-8 w-8 animate-spin text-violet-500" />
       </div>
     );
   }
 
   return (
-    <Card>
+    <Card variant="elevated">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <User className="h-5 w-5" />
+          <User className="h-5 w-5 text-violet-400" />
           Modifier votre profil
         </CardTitle>
       </CardHeader>
@@ -124,23 +125,24 @@ export function ProfileEditor() {
               onChange={(e) => setUsername(e.target.value)}
               placeholder="Votre pseudo"
               required
+              className="bg-black/40 border-violet-900/20"
             />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="avatar">Photo de profil</Label>
             <div className="flex items-center gap-4">
-              <Avatar className="h-16 w-16">
+              <Avatar className="h-16 w-16 border-2 border-violet-500/20">
                 <AvatarImage src={avatarPreview || undefined} />
-                <AvatarFallback>
+                <AvatarFallback className="bg-violet-900/30 text-white">
                   {username ? username.charAt(0).toUpperCase() : "U"}
                 </AvatarFallback>
               </Avatar>
               <Label
                 htmlFor="avatar-upload"
-                className="cursor-pointer flex items-center gap-2 px-4 py-2 border border-input rounded-md hover:bg-accent"
+                className="cursor-pointer flex items-center gap-2 px-4 py-2 border border-violet-500/30 rounded-md hover:bg-violet-500/10 transition-colors"
               >
-                <Upload className="h-4 w-4" />
+                <Upload className="h-4 w-4 text-violet-400" />
                 <span>Changer d'image</span>
                 <Input
                   id="avatar-upload"
@@ -153,7 +155,11 @@ export function ProfileEditor() {
             </div>
           </div>
 
-          <Button type="submit" disabled={isSubmitting || !username.trim()}>
+          <Button
+            type="submit"
+            disabled={isSubmitting || !username.trim()}
+            className="bg-violet-600 hover:bg-violet-700"
+          >
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Enregistrer
           </Button>
