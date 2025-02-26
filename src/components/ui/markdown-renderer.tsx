@@ -11,7 +11,15 @@ import {
 } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { cn } from "@/lib/utils";
 import { useTheme } from "next-themes";
-import { CheckSquare, Square } from "lucide-react";
+import {
+  CheckSquare,
+  Square,
+  AlertTriangle,
+  Info,
+  AlertCircle,
+  Lightbulb,
+  FileWarning,
+} from "lucide-react";
 
 interface MarkdownRendererProps {
   content: string;
@@ -43,31 +51,46 @@ export function MarkdownRenderer({
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
 
-  // Fonction pour transformer les emojis spéciaux en classes CSS
-  const processContent = (markdown: string) => {
-    // Transformation des blocs personnalisés
-    return markdown
-      .replace(
-        /> \*\*⚠️ Attention :\*\*/g,
-        "> **⚠️ Attention :** {.alert .alert-warning}"
-      )
-      .replace(/> \*\*ℹ️ Info :\*\*/g, "> **ℹ️ Info :** {.alert .alert-info}")
-      .replace(
-        /> \*\*❗ Important :\*\*/g,
-        "> **❗ Important :** {.alert .alert-important}"
-      )
-      .replace(
-        /> \*\*📌 À retenir :\*\*/g,
-        "> **📌 À retenir :** {.alert .alert-recap}"
-      )
-      .replace(
-        /> \*\*🚀 Astuce avancée :\*\*/g,
-        "> **🚀 Astuce avancée :** {.alert .alert-tip}"
-      )
-      .replace(
-        /> \*\*🔍 Debugging :\*\*/g,
-        "> **🔍 Debugging :** {.alert .alert-debug}"
-      );
+  // Fonction pour détecter le type d'alerte basé sur le contenu
+  const getAlertType = (
+    content: string
+  ): { type: string; icon: React.ReactNode; title: string } | null => {
+    if (content.startsWith("Note") || content.includes("ℹ️ Info")) {
+      return {
+        type: "note",
+        icon: <Info className="h-5 w-5 text-blue-600" />,
+        title: "Note",
+      };
+    }
+    if (content.startsWith("Tip") || content.includes("🚀 Astuce")) {
+      return {
+        type: "tip",
+        icon: <Lightbulb className="h-5 w-5 text-green-600" />,
+        title: "Tip",
+      };
+    }
+    if (content.startsWith("Important") || content.includes("❗ Important")) {
+      return {
+        type: "important",
+        icon: <AlertCircle className="h-5 w-5 text-purple-600" />,
+        title: "Important",
+      };
+    }
+    if (content.startsWith("Warning") || content.includes("⚠️ Attention")) {
+      return {
+        type: "warning",
+        icon: <AlertTriangle className="h-5 w-5 text-amber-600" />,
+        title: "Warning",
+      };
+    }
+    if (content.startsWith("Caution") || content.includes("🔺 Caution")) {
+      return {
+        type: "caution",
+        icon: <FileWarning className="h-5 w-5 text-red-600" />,
+        title: "Caution",
+      };
+    }
+    return null;
   };
 
   return (
@@ -88,47 +111,58 @@ export function MarkdownRenderer({
           h4: ({ node, ...props }) => (
             <h4 className="text-lg font-bold mt-4 mb-2" {...props} />
           ),
-          blockquote: ({ node, className, ...props }: any) => {
-            // Extraire la classe CSS des alertes si présente
-            const content = getTextContent(node);
-            const match = content.match(/{\.alert\s\.alert-([a-z]+)}/);
+          blockquote: ({ node, className, children, ...props }: any) => {
+            // Convertir les enfants en texte pour analyse
+            let textContent = "";
+            React.Children.forEach(children, (child) => {
+              if (typeof child === "string") {
+                textContent += child;
+              } else if (child?.props?.children) {
+                // Récupérer le texte des enfants de React
+                React.Children.forEach(child.props.children, (grandChild) => {
+                  if (typeof grandChild === "string") {
+                    textContent += grandChild;
+                  }
+                });
+              }
+            });
 
-            let alertType = "";
-            let cleanChildren = props.children;
+            // Détecter le type d'alerte
+            const alertInfo = getAlertType(textContent);
 
-            if (match) {
-              alertType = match[1];
-              // Nettoyer le contenu pour enlever le marqueur de classe
-              cleanChildren = React.Children.map(props.children, (child) => {
-                if (typeof child === "string") {
-                  return child.replace(/{\.alert\s\.alert-[a-z]+}/g, "");
-                }
-                return child;
-              });
+            if (alertInfo) {
+              const alertClasses = {
+                note: "border-l-blue-600 bg-blue-50 dark:bg-blue-950/30",
+                tip: "border-l-green-600 bg-green-50 dark:bg-green-950/30",
+                important:
+                  "border-l-purple-600 bg-purple-50 dark:bg-purple-950/30",
+                warning: "border-l-amber-600 bg-amber-50 dark:bg-amber-950/30",
+                caution: "border-l-red-600 bg-red-50 dark:bg-red-950/30",
+              };
+
+              return (
+                <div
+                  className={cn(
+                    "my-4 border-l-4 pl-4 py-2",
+                    alertClasses[alertInfo.type as keyof typeof alertClasses]
+                  )}
+                >
+                  <div className="flex items-center gap-2 font-medium mb-1">
+                    {alertInfo.icon}
+                    <span>{alertInfo.title}</span>
+                  </div>
+                  <div className="pl-7">{children}</div>
+                </div>
+              );
             }
 
-            const alertClasses = {
-              warning:
-                "bg-yellow-100 dark:bg-yellow-900/30 border-l-4 border-yellow-500",
-              info: "bg-blue-100 dark:bg-blue-900/30 border-l-4 border-blue-500",
-              important:
-                "bg-red-100 dark:bg-red-900/30 border-l-4 border-red-500",
-              recap:
-                "bg-purple-100 dark:bg-purple-900/30 border-l-4 border-purple-500",
-              tip: "bg-green-100 dark:bg-green-900/30 border-l-4 border-green-500",
-              debug: "bg-gray-100 dark:bg-gray-800 border-l-4 border-gray-500",
-            };
-
+            // Blockquote standard si ce n'est pas une alerte
             return (
               <blockquote
-                className={cn(
-                  "p-4 my-4 italic border-l-4 border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50",
-                  alertType &&
-                    alertClasses[alertType as keyof typeof alertClasses]
-                )}
+                className="p-4 my-4 italic border-l-4 border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50"
                 {...props}
               >
-                {cleanChildren}
+                {children}
               </blockquote>
             );
           },
@@ -235,7 +269,7 @@ export function MarkdownRenderer({
           ),
         }}
       >
-        {processContent(content)}
+        {content}
       </ReactMarkdown>
     </div>
   );
