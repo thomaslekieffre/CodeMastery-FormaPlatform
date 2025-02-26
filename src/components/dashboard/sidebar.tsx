@@ -16,6 +16,9 @@ import {
   GraduationCap,
   UserCircle,
   Code2,
+  PlusCircle,
+  FileCode,
+  BookOpenCheck,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -44,10 +47,28 @@ const teacherRoutes = [
     color: "text-violet-500",
   },
   {
+    name: "Création de cours",
+    href: "/dashboard/courses/create",
+    icon: PlusCircle,
+    color: "text-green-500",
+  },
+  {
     name: "Exercices",
     href: "/dashboard/exercises",
     icon: Code2,
     color: "text-pink-500",
+  },
+  {
+    name: "Création d'exercices",
+    href: "/dashboard/exercises/create",
+    icon: FileCode,
+    color: "text-blue-500",
+  },
+  {
+    name: "Gestion des exercices",
+    href: "/dashboard/exercises/manage",
+    icon: BookOpenCheck,
+    color: "text-indigo-500",
   },
   {
     name: "Étudiants",
@@ -126,22 +147,34 @@ const adminRoutes = [
     color: "text-yellow-500",
   },
   {
-    name: "Gestion des exercices",
-    href: "/dashboard/exercises/manage",
-    icon: Code2,
-    color: "text-violet-500",
-  },
-  {
     name: "Cours",
     href: "/dashboard/courses",
     icon: BookOpen,
-    color: "text-pink-500",
+    color: "text-violet-500",
+  },
+  {
+    name: "Création de cours",
+    href: "/dashboard/courses/create",
+    icon: PlusCircle,
+    color: "text-green-500",
   },
   {
     name: "Exercices",
     href: "/dashboard/exercises",
     icon: Code2,
-    color: "text-orange-500",
+    color: "text-pink-500",
+  },
+  {
+    name: "Création d'exercices",
+    href: "/dashboard/exercises/create",
+    icon: FileCode,
+    color: "text-blue-500",
+  },
+  {
+    name: "Gestion des exercices",
+    href: "/dashboard/exercises/manage",
+    icon: BookOpenCheck,
+    color: "text-indigo-500",
   },
   {
     name: "Forum",
