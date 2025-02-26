@@ -56,7 +56,7 @@ export interface Module {
   description: string;
   content: string;
   type: "article" | "exercise" | "video";
-  order: number;
+  sort_order: number;
   course_id: string;
   created_at: string;
   created_by: string;

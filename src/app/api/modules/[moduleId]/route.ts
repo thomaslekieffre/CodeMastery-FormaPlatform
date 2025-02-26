@@ -34,18 +34,21 @@ export async function PUT(
     }
 
     const data = await request.json();
+    const { order, ...moduleData } = data;
 
     // Log des données avant mise à jour
     console.log("Données du module à mettre à jour:", {
       id: moduleId,
-      ...data,
+      ...moduleData,
+      sort_order: order,
     });
 
     // Mettre à jour le module
-    const { data: moduleData, error: moduleError } = await supabase
+    const { data: updatedModule, error: moduleError } = await supabase
       .from("modules")
       .update({
-        ...data,
+        ...moduleData,
+        sort_order: order,
         updated_at: new Date().toISOString(),
       })
       .eq("id", moduleId)
@@ -66,7 +69,7 @@ export async function PUT(
       );
     }
 
-    return NextResponse.json(moduleData);
+    return NextResponse.json(updatedModule);
   } catch (err) {
     console.error("Erreur serveur:", err);
     return NextResponse.json(
@@ -147,7 +150,7 @@ export async function GET(
     // Récupérer le module
     const { data: module, error: moduleError } = await supabase
       .from("modules")
-      .select("*, exercises(*), video_url, exercise_id")
+      .select("*")
       .eq("id", moduleId)
       .single();
 
