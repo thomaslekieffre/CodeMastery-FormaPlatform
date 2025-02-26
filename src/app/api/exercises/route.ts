@@ -16,19 +16,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
     }
 
-    // Vérifier le rôle admin de manière plus robuste
-    const isAdmin =
-      user.role === "admin" || user.user_metadata?.role === "admin";
-
-    if (!isAdmin) {
-      console.log("Tentative d'accès non autorisé:", {
-        userId: user.id,
-        role: user.role,
-        metadata: user.user_metadata,
-      });
-      return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
-    }
-
     const data = await request.json();
     const { tests, updated_at, ...exercise } = data;
 
@@ -45,35 +32,19 @@ export async function POST(request: Request) {
         {
           ...exercise,
           created_by: user.id,
+          is_published: false, // Par défaut, les nouveaux exercices ne sont pas publiés
         },
       ])
       .select()
       .single();
 
     if (exerciseError) {
-      // Log détaillé de l'erreur
-      console.error("Erreur détaillée lors de la création de l'exercice:", {
+      console.error("Erreur lors de la création de l'exercice:", {
         error: exerciseError,
-        errorCode: exerciseError.code,
-        errorMessage: exerciseError.message,
-        errorDetails: exerciseError.details,
-        data: exercise,
         userId: user.id,
-        userRole: user.role,
-        userMetadata: user.user_metadata,
       });
-
-      return NextResponse.json(
-        {
-          error: "Erreur lors de la création de l'exercice",
-          details: exerciseError,
-        },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
     }
-
-    // Log du succès
-    console.log("Exercice créé avec succès:", exerciseData);
 
     // Insérer les tests
     if (tests && tests.length > 0) {
@@ -85,27 +56,14 @@ export async function POST(request: Request) {
         })
       );
 
-      // Log des tests à insérer
-      console.log("Tests à insérer:", testsWithExerciseId);
-
       const { error: testsError } = await supabase
         .from("exercise_tests")
         .insert(testsWithExerciseId);
 
       if (testsError) {
-        console.error("Erreur détaillée lors de la création des tests:", {
-          error: testsError,
-          errorCode: testsError.code,
-          errorMessage: testsError.message,
-          errorDetails: testsError.details,
-          userRole: user.role,
-          userMetadata: user.user_metadata,
-        });
+        console.error("Erreur lors de la création des tests:", testsError);
         return NextResponse.json(
-          {
-            error: "Erreur lors de la création des tests",
-            details: testsError,
-          },
+          { error: "Erreur lors de la création des tests" },
           { status: 500 }
         );
       }
@@ -113,36 +71,82 @@ export async function POST(request: Request) {
 
     return NextResponse.json(exerciseData);
   } catch (error) {
-    // Log détaillé de l'erreur générale
-    console.error("Erreur détaillée lors de la création de l'exercice:", {
-      error,
-      stack: error instanceof Error ? error.stack : undefined,
-    });
-    return NextResponse.json(
-      { error: "Erreur lors de la création de l'exercice", details: error },
-      { status: 500 }
-    );
+    console.error("Erreur:", error);
+    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
   }
 }
 
 export async function GET() {
   try {
     const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("exercises")
-      .select("*")
-      .order("created_at", { ascending: false });
+
+    // Vérifier l'authentification
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      console.log("Erreur d'authentification:", { error: authError });
+      return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
+    }
+
+    // Log des informations utilisateur
+    console.log("Informations utilisateur:", {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      metadata: user.user_metadata,
+    });
+
+    // Vérifier si l'utilisateur est admin
+    const isAdmin =
+      user.role === "admin" || user.user_metadata?.role === "admin";
+
+    // Construire la requête de base
+    let query = supabase.from("exercises").select("*");
+
+    // Filtrer les exercices publiés seulement pour les non-admins
+    if (!isAdmin) {
+      query = query.eq("is_published", true);
+    }
+
+    // Exécuter la requête avec le tri
+    const { data, error } = await query.order("created_at", {
+      ascending: false,
+    });
 
     if (error) {
-      throw error;
+      console.error("Erreur Supabase:", {
+        error,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code,
+      });
+      return NextResponse.json(
+        { error: "Erreur lors de la récupération des exercices" },
+        { status: 500 }
+      );
     }
+
+    // Log du succès
+    console.log("Exercices récupérés:", {
+      count: data?.length,
+      exercices: data?.map((e) => ({
+        id: e.id,
+        title: e.title,
+        published: e.is_published,
+      })),
+    });
 
     return NextResponse.json(data);
   } catch (error) {
-    console.error("Erreur lors de la récupération des exercices:", error);
-    return NextResponse.json(
-      { error: "Erreur lors de la récupération des exercices" },
-      { status: 500 }
-    );
+    console.error("Erreur détaillée:", {
+      error,
+      message: error instanceof Error ? error.message : "Erreur inconnue",
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
   }
 }

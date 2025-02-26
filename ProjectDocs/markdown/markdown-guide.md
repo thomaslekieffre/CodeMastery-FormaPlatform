@@ -88,17 +88,34 @@ Contenu qui sera affiché lorsque l'utilisateur clique sur le titre.
 CodeMastery supporte des blocs d'alerte spéciaux pour mettre en évidence certaines informations :
 
 ```markdown
-> **⚠️ Attention :** Ce texte sera affiché dans un bloc d'alerte jaune.
+> Note
+> Informations utiles que les utilisateurs devraient connaître, même en survolant le contenu.
 
-> **ℹ️ Info :** Ce texte sera affiché dans un bloc d'alerte bleue.
+> Tip
+> Conseils utiles pour faire les choses mieux ou plus facilement.
 
-> **❗ Important :** Ce texte sera affiché dans un bloc d'alerte rouge.
+> Important
+> Informations essentielles dont les utilisateurs ont besoin pour atteindre leur objectif.
 
-> **📌 À retenir :** Ce texte sera affiché dans un bloc d'alerte violette.
+> Warning
+> Informations urgentes qui nécessitent l'attention immédiate de l'utilisateur pour éviter des problèmes.
 
-> **🚀 Astuce avancée :** Ce texte sera affiché dans un bloc d'alerte verte.
+> Caution
+> Avertissements concernant les risques ou conséquences négatives de certaines actions.
+```
 
-> **🔍 Debugging :** Ce texte sera affiché dans un bloc d'alerte grise.
+Vous pouvez également utiliser les anciennes syntaxes qui seront automatiquement converties :
+
+```markdown
+> ℹ️ Info : Informations utiles...
+
+> 🚀 Astuce : Conseils utiles...
+
+> ❗ Important : Informations essentielles...
+
+> ⚠️ Attention : Informations urgentes...
+
+> 🔺 Caution : Avertissements concernant les risques...
 ```
 
 ## Exemples concrets
@@ -112,7 +129,8 @@ CodeMastery supporte des blocs d'alerte spéciaux pour mettre en évidence certa
 
 JavaScript est un langage de programmation qui permet d'ajouter de l'interactivité aux pages web.
 
-> **📌 À retenir :** JavaScript n'est pas Java! Ce sont deux langages complètement différents.
+> Important
+> JavaScript n'est pas Java! Ce sont deux langages complètement différents.
 
 ### Votre premier programme
 
@@ -137,7 +155,8 @@ alert("Bonjour, monde!");
 - [ ] Écrire une fonction qui additionne deux nombres
 - [x] Comprendre la différence entre `let` et `const`
 
-> **🚀 Astuce avancée :** Utilisez les outils de développement de votre navigateur pour déboguer votre code JavaScript.
+> Tip
+> Utilisez les outils de développement de votre navigateur pour déboguer votre code JavaScript.
 ````
 
 ### Exemple de commentaire
@@ -150,7 +169,8 @@ Je voudrais ajouter que:
 1. Les fonctions fléchées (`=>`) ont un comportement différent avec `this`
 2. On peut utiliser `const` pour les objets et tableaux, même si leur contenu change
 
-> **ℹ️ Info :** MDN est une excellente ressource pour apprendre JavaScript: [MDN Web Docs](https://developer.mozilla.org)
+> Note
+> MDN est une excellente ressource pour apprendre JavaScript: [MDN Web Docs](https://developer.mozilla.org)
 ```
 
 ## Conseils d'utilisation

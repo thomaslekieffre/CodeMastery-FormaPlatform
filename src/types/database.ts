@@ -14,6 +14,7 @@ export interface Exercise {
   created_at: string;
   updated_at: string;
   created_by: string;
+  is_published: boolean;
 }
 
 export interface ExerciseTest {

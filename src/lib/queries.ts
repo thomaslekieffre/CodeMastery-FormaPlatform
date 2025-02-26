@@ -9,11 +9,14 @@ import type {
 const supabase = createClient<Database>();
 
 // Exercices
-export async function getExercises() {
-  const { data, error } = await supabase
-    .from("exercises")
-    .select("*")
-    .order("created_at", { ascending: false });
+export async function getExercises(isAdmin = false) {
+  let query = supabase.from("exercises").select("*");
+
+  if (!isAdmin) {
+    query = query.eq("is_published", true);
+  }
+
+  const { data, error } = await query.order("created_at", { ascending: false });
 
   if (error) throw error;
   return data;

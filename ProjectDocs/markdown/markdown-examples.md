@@ -107,17 +107,20 @@ body {
 
 ## Blocs d'alerte personnalisés
 
-> **⚠️ Attention :** Soyez prudent lorsque vous manipulez des données sensibles.
+> Note
+> Informations utiles que les utilisateurs devraient connaître, même en survolant le contenu.
 
-> **ℹ️ Info :** JavaScript est un langage interprété.
+> Tip
+> Conseils utiles pour faire les choses mieux ou plus facilement.
 
-> **❗ Important :** N'oubliez pas de sauvegarder votre travail régulièrement.
+> Important
+> Informations essentielles dont les utilisateurs ont besoin pour atteindre leur objectif.
 
-> **📌 À retenir :** Les fonctions sont des objets de première classe en JavaScript.
+> Warning
+> Informations urgentes qui nécessitent l'attention immédiate de l'utilisateur pour éviter des problèmes.
 
-> **🚀 Astuce avancée :** Utilisez la déstructuration pour simplifier votre code.
-
-> **🔍 Debugging :** Vérifiez les valeurs dans la console pour identifier les erreurs.
+> Caution
+> Avertissements concernant les risques ou conséquences négatives de certaines actions.
 
 ## Blocs dépliables
 

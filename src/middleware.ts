@@ -30,8 +30,13 @@ export async function middleware(request: NextRequest) {
     return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
   }
 
-  // Si c'est une route API admin
-  if (request.nextUrl.pathname.startsWith("/api/exercises")) {
+  // Si c'est une route API admin qui nécessite des droits d'écriture
+  if (
+    request.nextUrl.pathname.startsWith("/api/exercises") &&
+    (request.method === "POST" ||
+      request.method === "PUT" ||
+      request.method === "DELETE")
+  ) {
     const userRole = user.user_metadata?.role;
     if (userRole !== "admin") {
       return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
