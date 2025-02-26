@@ -7,6 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
+import { Heading, Paragraph } from "@/components/ui/typography";
+import { SectionWrapper } from "@/components/ui/section-wrapper";
+import { Container } from "@/components/ui/container";
 
 export default function ProfilePage() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -14,38 +17,54 @@ export default function ProfilePage() {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-[60vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      <Container>
+        <SectionWrapper>
+          <div className="flex justify-center items-center min-h-[60vh]">
+            <Loader2 className="h-8 w-8 animate-spin text-violet-500" />
+          </div>
+        </SectionWrapper>
+      </Container>
     );
   }
 
   if (!isAuthenticated) {
     return (
-      <Card className="max-w-md mx-auto mt-8">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ShieldAlert className="h-5 w-5 text-destructive" />
-            Accès non autorisé
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p>Vous devez être connecté pour accéder à cette page.</p>
-          <Button onClick={() => router.push("/login")}>Se connecter</Button>
-        </CardContent>
-      </Card>
+      <Container>
+        <SectionWrapper>
+          <Card className="max-w-md mx-auto mt-8" variant="elevated">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ShieldAlert className="h-5 w-5 text-red-400" />
+                Accès non autorisé
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Paragraph>
+                Vous devez être connecté pour accéder à cette page.
+              </Paragraph>
+              <Button onClick={() => router.push("/login")}>
+                Se connecter
+              </Button>
+            </CardContent>
+          </Card>
+        </SectionWrapper>
+      </Container>
     );
   }
 
   return (
-    <div className="container max-w-4xl py-8">
-      <h1 className="text-3xl font-bold mb-8">Votre profil</h1>
+    <Container>
+      <SectionWrapper>
+        <Heading as="h1" size="h2" className="mb-8">
+          Votre profil
+        </Heading>
 
-      {/* Modal de configuration initiale du profil */}
-      <ProfileSetupModal />
+        {/* Modal de configuration initiale du profil */}
+        <ProfileSetupModal />
 
-      {/* Éditeur de profil */}
-      <ProfileEditor />
-    </div>
+        {/* Éditeur de profil */}
+        <ProfileEditor />
+      </SectionWrapper>
+    </Container>
   );
 }

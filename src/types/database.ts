@@ -55,11 +55,13 @@ export interface Module {
   title: string;
   description: string;
   content: string;
-  type: "article" | "exercise";
+  type: "article" | "exercise" | "video";
   order: number;
   course_id: string;
   created_at: string;
   created_by: string;
+  video_url?: string;
+  exercise_id?: string;
 }
 
 export interface UserCourseProgress {

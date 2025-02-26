@@ -9,10 +9,7 @@ import { fr } from "date-fns/locale";
 import { Loader2, MessageSquare, Reply, ThumbsUp } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { ErrorMessage } from "@/components/ui/error-message";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import rehypeRaw from "rehype-raw";
-import rehypePrismPlus from "rehype-prism-plus";
+import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 import { useForumStore } from "@/store/forum-store";
 import { Comment } from "@/types/forum";
 import { toast } from "sonner";
@@ -171,12 +168,7 @@ export function CommentSection({
                       </p>
                     </div>
                     <div className="prose prose-invert prose-sm max-w-none">
-                      <ReactMarkdown
-                        remarkPlugins={[remarkGfm]}
-                        rehypePlugins={[rehypeRaw, rehypePrismPlus]}
-                      >
-                        {comment.content}
-                      </ReactMarkdown>
+                      <MarkdownRenderer content={comment.content} />
                     </div>
                     <div className="flex items-center gap-4 mt-3">
                       <Button

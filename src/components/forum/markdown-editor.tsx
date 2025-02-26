@@ -14,9 +14,7 @@ import {
   Edit2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import rehypeRaw from "rehype-raw";
+import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
@@ -258,12 +256,7 @@ export function MarkdownEditor({
           className="p-4 m-0 min-h-[300px] prose prose-invert max-w-none"
         >
           {value ? (
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              rehypePlugins={[rehypeRaw]}
-            >
-              {value}
-            </ReactMarkdown>
+            <MarkdownRenderer content={value} />
           ) : (
             <p className="text-gray-400 italic">Rien à afficher</p>
           )}

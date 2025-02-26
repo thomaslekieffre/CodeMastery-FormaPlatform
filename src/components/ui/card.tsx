@@ -1,16 +1,17 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
+import { cardStyles } from "./card-styles";
 
 const Card = React.forwardRef<
   HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
+  React.HTMLAttributes<HTMLDivElement> & {
+    variant?: "default" | "elevated" | "bordered" | "ghost";
+    size?: "default" | "sm" | "lg";
+  }
+>(({ className, variant, size, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn(
-      "rounded-lg border bg-card text-card-foreground shadow-sm",
-      className
-    )}
+    className={cn(cardStyles({ variant, size }), className)}
     {...props}
   />
 ));
@@ -35,7 +36,7 @@ const CardTitle = React.forwardRef<
   <h3
     ref={ref}
     className={cn(
-      "text-2xl font-semibold leading-none tracking-tight",
+      "text-xl font-semibold leading-none tracking-tight text-white",
       className
     )}
     {...props}
@@ -47,11 +48,7 @@ const CardDescription = React.forwardRef<
   HTMLParagraphElement,
   React.HTMLAttributes<HTMLParagraphElement>
 >(({ className, ...props }, ref) => (
-  <p
-    ref={ref}
-    className={cn("text-sm text-muted-foreground", className)}
-    {...props}
-  />
+  <p ref={ref} className={cn("text-sm text-gray-300", className)} {...props} />
 ));
 CardDescription.displayName = "CardDescription";
 
