@@ -105,7 +105,9 @@ export function RecentExercises({ userId }: Props) {
               <Card className="p-4 hover:border-primary/50 transition-colors">
                 <div className="flex items-start justify-between">
                   <div>
-                    <h3 className="font-medium">{exercise.title}</h3>
+                    <h3 className="font-medium text-foreground">
+                      {exercise.title}
+                    </h3>
                     <p className="text-sm text-muted-foreground line-clamp-1">
                       {exercise.description}
                     </p>
@@ -113,8 +115,8 @@ export function RecentExercises({ userId }: Props) {
                   <motion.div
                     className={`px-2 py-1 text-xs font-medium rounded capitalize ${
                       exercise.progress.status === "completed"
-                        ? "bg-emerald-500/10 text-emerald-500"
-                        : "bg-yellow-500/10 text-yellow-500"
+                        ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-500"
+                        : "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/10 dark:text-yellow-500"
                     }`}
                     initial={{ scale: 0.8 }}
                     animate={{ scale: 1 }}

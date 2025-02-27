@@ -16,11 +16,11 @@ const headingVariants = cva("font-bold tracking-tight", {
       h6: "text-base md:text-lg",
     },
     colorScheme: {
-      default: "text-white",
-      muted: "text-gray-200",
-      accent: "text-violet-400",
+      default: "text-black dark:text-white",
+      muted: "text-gray-800 dark:text-gray-200",
+      accent: "text-violet-600 dark:text-violet-400",
       gradient:
-        "bg-clip-text text-transparent bg-gradient-to-r from-violet-400 to-purple-600",
+        "bg-clip-text text-transparent bg-gradient-to-r from-violet-600 to-purple-600 dark:from-violet-400 dark:to-purple-600",
     },
   },
   defaultVariants: {

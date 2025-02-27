@@ -115,7 +115,7 @@ export function UserProgressCard({ userId }: Props) {
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Progression globale</span>
             <motion.span
-              className="font-medium"
+              className="font-medium text-foreground"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.5 }}

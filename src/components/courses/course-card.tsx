@@ -11,10 +11,10 @@ type DifficultyColor = {
 };
 
 const difficultyColors: DifficultyColor = {
-  facile: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100",
+  facile: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-100",
   moyen:
-    "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100",
-  difficile: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100",
+    "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-100",
+  difficile: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-100",
 };
 
 interface CourseCardProps {
@@ -37,7 +37,7 @@ export function CourseCard({
   return (
     <Link
       href={href}
-      className="group relative flex flex-col overflow-hidden rounded-lg border bg-card p-5 transition-all hover:border-primary"
+      className="group relative flex flex-col overflow-hidden rounded-lg border bg-card text-card-foreground p-5 transition-all hover:border-primary"
     >
       {course.image_url && (
         <div className="relative mb-4 aspect-video w-full overflow-hidden rounded-md">

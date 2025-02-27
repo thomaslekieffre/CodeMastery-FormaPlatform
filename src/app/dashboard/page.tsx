@@ -74,40 +74,39 @@ export default function DashboardPage() {
       <SectionWrapper>
         <div className="space-y-8 py-6">
           <div>
-            <Heading as="h1" size="h1" className="mb-2">
+            <Heading as="h1" size="h1" className="mb-2 text-foreground">
               Bienvenue, {profile?.username || "Apprenant"}
             </Heading>
-            <Paragraph className="text-gray-400 max-w-2xl">
+            <Paragraph className="text-muted-foreground max-w-2xl">
               Suivez votre progression, accédez à vos cours et exercices, et
               rejoignez la communauté pour échanger avec d'autres apprenants.
             </Paragraph>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <Card
-              variant="elevated"
-              className="border-violet-500/20 hover:border-violet-500/40 transition-colors"
-            >
+            <Card className="hover:border-primary/40 transition-colors">
               <CardHeader className="pb-3">
-                <BookOpen className="h-8 w-8 text-violet-500 mb-2" />
+                <BookOpen className="h-8 w-8 text-primary mb-2" />
                 <CardTitle>Mes Cours</CardTitle>
                 <CardDescription>
                   Accédez à vos cours et continuez votre apprentissage
                 </CardDescription>
               </CardHeader>
               <CardContent className="pb-2">
-                <div className="h-2 w-full bg-gray-800 rounded-full overflow-hidden">
+                <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-violet-500 rounded-full"
+                    className="h-full bg-primary rounded-full"
                     style={{ width: "35%" }}
                   ></div>
                 </div>
-                <p className="text-sm text-gray-400 mt-2">35% complété</p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  35% complété
+                </p>
               </CardContent>
               <CardFooter>
                 <Button
                   variant="ghost"
-                  className="w-full justify-between group"
+                  className="w-full justify-between group hover:text-primary"
                   asChild
                 >
                   <Link href="/dashboard/courses">
@@ -118,19 +117,16 @@ export default function DashboardPage() {
               </CardFooter>
             </Card>
 
-            <Card
-              variant="elevated"
-              className="border-violet-500/20 hover:border-violet-500/40 transition-colors"
-            >
+            <Card className="hover:border-primary/40 transition-colors">
               <CardHeader className="pb-3">
-                <Code className="h-8 w-8 text-violet-500 mb-2" />
+                <Code className="h-8 w-8 text-primary mb-2" />
                 <CardTitle>Exercices</CardTitle>
                 <CardDescription>
                   Pratiquez vos compétences avec des exercices interactifs
                 </CardDescription>
               </CardHeader>
               <CardContent className="pb-2">
-                <div className="flex justify-between text-sm text-gray-400">
+                <div className="flex justify-between text-sm text-muted-foreground">
                   <span>Exercices complétés: 12</span>
                   <span>Total: 30</span>
                 </div>
@@ -138,7 +134,7 @@ export default function DashboardPage() {
               <CardFooter>
                 <Button
                   variant="ghost"
-                  className="w-full justify-between group"
+                  className="w-full justify-between group hover:text-primary"
                   asChild
                 >
                   <Link href="/dashboard/exercises">
@@ -149,26 +145,23 @@ export default function DashboardPage() {
               </CardFooter>
             </Card>
 
-            <Card
-              variant="elevated"
-              className="border-violet-500/20 hover:border-violet-500/40 transition-colors"
-            >
+            <Card className="hover:border-primary/40 transition-colors">
               <CardHeader className="pb-3">
-                <MessageSquare className="h-8 w-8 text-violet-500 mb-2" />
+                <MessageSquare className="h-8 w-8 text-primary mb-2" />
                 <CardTitle>Forum</CardTitle>
                 <CardDescription>
                   Échangez avec la communauté et obtenez de l'aide
                 </CardDescription>
               </CardHeader>
               <CardContent className="pb-2">
-                <p className="text-sm text-gray-400">
+                <p className="text-sm text-muted-foreground">
                   5 nouvelles discussions aujourd'hui
                 </p>
               </CardContent>
               <CardFooter>
                 <Button
                   variant="ghost"
-                  className="w-full justify-between group"
+                  className="w-full justify-between group hover:text-primary"
                   asChild
                 >
                   <Link href="/dashboard/forum">
@@ -181,7 +174,7 @@ export default function DashboardPage() {
           </div>
 
           <div className="mt-10">
-            <Card variant="elevated" className="border-violet-500/20">
+            <Card className="hover:border-primary/40 transition-colors">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle>Mes réalisations</CardTitle>
@@ -192,24 +185,28 @@ export default function DashboardPage() {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium">Premier cours terminé</p>
-                      <p className="text-sm text-gray-400">
+                      <p className="font-medium text-foreground">
+                        Premier cours terminé
+                      </p>
+                      <p className="text-sm text-muted-foreground">
                         Vous avez terminé votre premier cours
                       </p>
                     </div>
-                    <div className="h-10 w-10 rounded-full bg-violet-500/10 flex items-center justify-center">
-                      <Trophy className="h-5 w-5 text-violet-500" />
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Trophy className="h-5 w-5 text-primary" />
                     </div>
                   </div>
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium">5 exercices réussis</p>
-                      <p className="text-sm text-gray-400">
+                      <p className="font-medium text-foreground">
+                        5 exercices réussis
+                      </p>
+                      <p className="text-sm text-muted-foreground">
                         Vous avez réussi 5 exercices
                       </p>
                     </div>
-                    <div className="h-10 w-10 rounded-full bg-violet-500/10 flex items-center justify-center">
-                      <Code className="h-5 w-5 text-violet-500" />
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Code className="h-5 w-5 text-primary" />
                     </div>
                   </div>
                 </div>
@@ -217,7 +214,7 @@ export default function DashboardPage() {
               <CardFooter>
                 <Button
                   variant="ghost"
-                  className="w-full justify-between group"
+                  className="w-full justify-between group hover:text-primary"
                   asChild
                 >
                   <Link href="/dashboard/achievements">

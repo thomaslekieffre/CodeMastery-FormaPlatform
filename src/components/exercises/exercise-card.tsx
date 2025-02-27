@@ -10,9 +10,11 @@ type DifficultyColor = {
 };
 
 const difficultyColors: DifficultyColor = {
-  facile: "bg-green-500/10 text-green-500",
-  moyen: "bg-yellow-500/10 text-yellow-500",
-  difficile: "bg-red-500/10 text-red-500",
+  facile:
+    "bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-500",
+  moyen:
+    "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/10 dark:text-yellow-500",
+  difficile: "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-500",
 };
 
 export function ExerciseCard({
@@ -26,12 +28,12 @@ export function ExerciseCard({
   return (
     <Link
       href={`/dashboard/exercises/${id}`}
-      className="block p-6 bg-card rounded-lg border border-border hover:border-primary/50 transition-colors"
+      className="block p-6 rounded-lg border bg-card text-card-foreground hover:border-primary/50 transition-colors"
     >
       <div className="space-y-4">
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <h3 className="font-semibold">{title}</h3>
+            <h3 className="font-semibold text-foreground">{title}</h3>
             <span
               className={cn(
                 "px-2 py-1 text-xs font-medium rounded capitalize",
@@ -57,7 +59,7 @@ export function ExerciseCard({
             {technologies.map((tech) => (
               <span
                 key={tech}
-                className="px-2 py-1 bg-primary/10 text-primary rounded text-xs font-medium"
+                className="px-2 py-1 bg-primary/10 text-primary-700 dark:text-primary rounded text-xs font-medium"
               >
                 {tech}
               </span>

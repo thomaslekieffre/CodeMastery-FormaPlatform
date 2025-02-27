@@ -126,8 +126,10 @@ export function RecommendedExercises({ userId }: Props) {
                     <Star className="h-4 w-4" />
                   </motion.div>
                   <div>
-                    <h3 className="font-medium">{exercise.title}</h3>
-                    <p className="text-sm text-muted-foreground line-clamp-1">
+                    <h3 className="font-medium text-foreground">
+                      {exercise.title}
+                    </h3>
+                    <p className="text-sm text-muted-foreground line-clamp-2">
                       {exercise.description}
                     </p>
                     <div className="flex flex-wrap gap-1 mt-2">
@@ -140,7 +142,7 @@ export function RecommendedExercises({ userId }: Props) {
                           transition={{
                             delay: i * 0.1 + techIndex * 0.05 + 0.3,
                           }}
-                          className="px-2 py-0.5 bg-muted text-muted-foreground rounded text-xs"
+                          className="px-2 py-0.5 bg-muted text-muted-foreground dark:text-muted-foreground rounded text-xs font-medium"
                         >
                           {tech}
                         </motion.span>
