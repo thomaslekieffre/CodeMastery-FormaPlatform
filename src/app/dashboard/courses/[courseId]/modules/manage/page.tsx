@@ -16,10 +16,114 @@ import {
   Plus,
   Trash2,
   Edit,
+  GripVertical,
 } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 import type { Course, Module } from "@/types/database";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+
+const getModuleIcon = (type: string) => {
+  switch (type) {
+    case "video":
+      return PlayCircle;
+    case "article":
+      return FileText;
+    case "exercise":
+      return Code;
+    default:
+      return BookOpen;
+  }
+};
+
+interface SortableModuleItemProps {
+  module: Module;
+  onDelete: (id: string) => void;
+}
+
+function SortableModuleItem({ module, onDelete }: SortableModuleItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: module.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  const Icon = getModuleIcon(module.type);
+
+  return (
+    <Card
+      ref={setNodeRef}
+      style={style}
+      className="bg-card/50 border-violet-500/20"
+    >
+      <CardContent className="flex items-center justify-between p-4">
+        <div className="flex items-center gap-4">
+          <button
+            className="cursor-grab active:cursor-grabbing p-1 hover:bg-accent rounded"
+            {...attributes}
+            {...listeners}
+          >
+            <GripVertical className="h-5 w-5 text-muted-foreground" />
+          </button>
+          <div className="p-2 rounded-lg bg-violet-500/10">
+            <Icon className="h-6 w-6 text-violet-500" />
+          </div>
+          <div>
+            <h3 className="font-medium">{module.title}</h3>
+            <p className="text-sm text-muted-foreground">
+              {module.type === "video"
+                ? "Vidéo"
+                : module.type === "article"
+                ? "Article"
+                : "Exercice"}
+            </p>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <Link
+            href={`/dashboard/courses/${module.course_id}/modules/edit/${module.id}`}
+          >
+            <Button variant="outline" size="sm">
+              <Edit className="h-4 w-4" />
+            </Button>
+          </Link>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onDelete(module.id)}
+          >
+            <Trash2 className="h-4 w-4 text-red-500" />
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function ManageModulesPage() {
   const { courseId } = useParams();
@@ -27,6 +131,13 @@ export default function ManageModulesPage() {
   const [course, setCourse] = useState<Course | null>(null);
   const [modules, setModules] = useState<Module[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   useEffect(() => {
     const fetchCourseAndModules = async () => {
@@ -79,16 +190,35 @@ export default function ManageModulesPage() {
     }
   };
 
-  const getModuleIcon = (type: string) => {
-    switch (type) {
-      case "video":
-        return PlayCircle;
-      case "article":
-        return FileText;
-      case "exercise":
-        return Code;
-      default:
-        return BookOpen;
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      setModules((items) => {
+        const oldIndex = items.findIndex((item) => item.id === active.id);
+        const newIndex = items.findIndex((item) => item.id === over.id);
+
+        const newItems = arrayMove(items, oldIndex, newIndex);
+
+        // Mettre à jour l'ordre sur le serveur
+        fetch(`/api/courses/${courseId}/modules/reorder`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            modules: newItems.map((item, index) => ({
+              id: item.id,
+              order: index,
+            })),
+          }),
+        }).catch((error) => {
+          console.error("Erreur lors de la réorganisation:", error);
+          toast.error("Impossible de sauvegarder l'ordre des modules");
+        });
+
+        return newItems;
+      });
     }
   };
 
@@ -157,51 +287,26 @@ export default function ManageModulesPage() {
                   </CardContent>
                 </Card>
               ) : (
-                <div className="space-y-4">
-                  {modules.map((module) => {
-                    const Icon = getModuleIcon(module.type);
-                    return (
-                      <Card
-                        key={module.id}
-                        className="bg-card/50 border-violet-500/20"
-                      >
-                        <CardContent className="flex items-center justify-between p-4">
-                          <div className="flex items-center gap-4">
-                            <div className="p-2 rounded-lg bg-violet-500/10">
-                              <Icon className="h-6 w-6 text-violet-500" />
-                            </div>
-                            <div>
-                              <h3 className="font-medium">{module.title}</h3>
-                              <p className="text-sm text-muted-foreground">
-                                {module.type === "video"
-                                  ? "Vidéo"
-                                  : module.type === "article"
-                                  ? "Article"
-                                  : "Exercice"}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex gap-2">
-                            <Link
-                              href={`/dashboard/courses/${courseId}/modules/edit/${module.id}`}
-                            >
-                              <Button variant="outline" size="sm">
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                            </Link>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleDelete(module.id)}
-                            >
-                              <Trash2 className="h-4 w-4 text-red-500" />
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                </div>
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
+                >
+                  <SortableContext
+                    items={modules}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <div className="space-y-4">
+                      {modules.map((module) => (
+                        <SortableModuleItem
+                          key={module.id}
+                          module={module}
+                          onDelete={handleDelete}
+                        />
+                      ))}
+                    </div>
+                  </SortableContext>
+                </DndContext>
               )}
             </div>
           )}

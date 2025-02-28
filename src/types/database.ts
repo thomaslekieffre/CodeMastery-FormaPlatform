@@ -62,6 +62,7 @@ export interface Module {
   created_by: string;
   video_url?: string;
   exercise_id?: string;
+  language?: string;
 }
 
 export interface UserCourseProgress {

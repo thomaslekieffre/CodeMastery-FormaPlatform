@@ -1,23 +1,25 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import type { Module } from "@/types/database";
+import { getAuthUser } from "@/lib/auth/helpers";
 
-export async function PUT(
+interface ModuleOrder {
+  id: string;
+  order: number;
+}
+
+export async function POST(
   request: Request,
   context: { params: { courseId: string } }
 ) {
   try {
-    const courseId = context.params.courseId;
     const supabase = await createClient();
+    const user = await getAuthUser();
 
-    // Vérifier l'authentification
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
+    if (!user) {
+      return NextResponse.json(
+        { error: "Vous devez être connecté" },
+        { status: 401 }
+      );
     }
 
     // Vérifier le rôle admin
@@ -33,59 +35,20 @@ export async function PUT(
       return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
     }
 
-    const { modules } = await request.json();
-
-    // Log des données avant mise à jour
-    console.log("Données des modules à réorganiser:", {
-      courseId,
-      modules,
-    });
+    const { modules }: { modules: ModuleOrder[] } = await request.json();
 
     // Mettre à jour l'ordre des modules
-    for (const module of modules) {
-      const { error: moduleError } = await supabase
+    const promises = modules.map(({ id, order }) =>
+      supabase
         .from("modules")
-        .update({
-          order: module.order,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", module.id)
-        .eq("course_id", courseId);
+        .update({ order })
+        .eq("id", id)
+        .eq("course_id", context.params.courseId)
+    );
 
-      if (moduleError) {
-        console.error("Erreur lors de la mise à jour du module:", {
-          error: moduleError,
-          moduleId: module.id,
-        });
-        return NextResponse.json(
-          {
-            error: "Erreur lors de la réorganisation des modules",
-            details: moduleError,
-          },
-          { status: 500 }
-        );
-      }
-    }
+    await Promise.all(promises);
 
-    // Récupérer les modules mis à jour
-    const { data: updatedModules, error: fetchError } = await supabase
-      .from("modules")
-      .select("*")
-      .eq("course_id", courseId)
-      .order("order", { ascending: true });
-
-    if (fetchError) {
-      console.error("Erreur lors de la récupération des modules:", fetchError);
-      return NextResponse.json(
-        {
-          error: "Erreur lors de la récupération des modules",
-          details: fetchError,
-        },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json(updatedModules);
+    return NextResponse.json({ success: true });
   } catch (err) {
     console.error("Erreur serveur:", err);
     return NextResponse.json(
