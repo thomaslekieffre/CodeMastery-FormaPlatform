@@ -22,7 +22,14 @@ import Link from "next/link";
 import { useAppStore } from "@/store/use-app-store";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
-import type { Course, Module, UserCourseProgress } from "@/types/database";
+import type { Course, Module } from "@/types/database";
+
+interface CourseProgressResponse {
+  totalModules: number;
+  completedModules: number;
+  progressPercentage: number;
+  completedModuleIds: string[];
+}
 
 const moduleTypeIcons = {
   video: PlayCircle,
@@ -30,19 +37,13 @@ const moduleTypeIcons = {
   exercise: Code,
 };
 
-interface UserCourseProgress {
-  totalModules: number;
-  completedModules: number;
-  progressPercentage: number;
-  completedModuleIds: string[];
-}
-
 export default function CourseDetailPage() {
   const { courseId } = useParams();
   const router = useRouter();
   const [course, setCourse] = useState<Course & { modules?: Module[] }>();
   const [loading, setLoading] = useState(true);
-  const [progress, setProgress] = useState<UserCourseProgress | null>(null);
+  const [courseProgress, setCourseProgress] =
+    useState<CourseProgressResponse | null>(null);
   const { user } = useAppStore();
   const { isAuthenticated } = useAuth();
   const isAdmin = user?.role === "admin";
@@ -59,14 +60,14 @@ export default function CourseDetailPage() {
         setCourse(data);
 
         // Récupérer la progression si l'utilisateur est connecté
-        if (user) {
+        if (isAuthenticated) {
           try {
             const progressResponse = await fetch(
               `/api/courses/${courseId}/progress`
             );
             if (progressResponse.ok) {
               const progressData = await progressResponse.json();
-              setProgress(progressData);
+              setCourseProgress(progressData);
             }
           } catch (error) {
             console.error(
@@ -84,7 +85,7 @@ export default function CourseDetailPage() {
     };
 
     fetchCourse();
-  }, [courseId, user]);
+  }, [courseId, isAuthenticated]);
 
   const startCourse = async () => {
     if (!isAuthenticated) {
@@ -102,7 +103,7 @@ export default function CourseDetailPage() {
       }
 
       const data = await response.json();
-      setProgress(data);
+      setCourseProgress(data);
 
       // Rediriger vers le premier module s'il existe
       if (course?.modules && course.modules.length > 0) {
@@ -115,11 +116,11 @@ export default function CourseDetailPage() {
   };
 
   const continueCourse = () => {
-    if (!course?.modules || !progress) return;
+    if (!course?.modules || !courseProgress) return;
 
     // Trouver le premier module non complété
     const nextModuleIndex = course.modules.findIndex(
-      (module) => !progress.completedModuleIds.includes(module.id)
+      (module) => !courseProgress.completedModuleIds.includes(module.id)
     );
 
     if (nextModuleIndex !== -1) {
@@ -136,7 +137,7 @@ export default function CourseDetailPage() {
     }
   };
 
-  const completedModules = progress?.completedModuleIds || [];
+  const completedModules = courseProgress?.completedModuleIds || [];
   const totalModules = course?.modules?.length || 0;
   const progressPercentage =
     totalModules > 0
@@ -316,7 +317,7 @@ export default function CourseDetailPage() {
                     </div>
                   )}
 
-                  {progress ? (
+                  {courseProgress ? (
                     <div className="space-y-4">
                       <div>
                         <div className="flex justify-between text-sm mb-2">
