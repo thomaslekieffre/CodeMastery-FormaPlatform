@@ -149,9 +149,9 @@ export function CourseForm({ initialData, mode }: CourseFormProps) {
               className="w-full rounded-md border bg-background px-3 py-2"
               required
             >
-              <option value="facile">Facile</option>
-              <option value="moyen">Moyen</option>
-              <option value="difficile">Difficile</option>
+              <option value="facile">Débutant</option>
+              <option value="moyen">Intermédiaire</option>
+              <option value="difficile">Avancé</option>
             </select>
           </div>
 

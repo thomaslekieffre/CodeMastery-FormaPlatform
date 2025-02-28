@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { getAuthUser } from "@/lib/auth/helpers";
 import type { Module } from "@/types/database";
 
 export async function PUT(
@@ -9,14 +10,9 @@ export async function PUT(
   try {
     const moduleId = context.params.moduleId;
     const supabase = await createClient();
+    const user = await getAuthUser();
 
-    // Vérifier l'authentification
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
     }
 
@@ -25,21 +21,18 @@ export async function PUT(
       user.role === "admin" || user.user_metadata?.role === "admin";
 
     if (!isAdmin) {
-      console.log("Tentative d'accès non autorisé:", {
-        userId: user.id,
-        role: user.role,
-        metadata: user.user_metadata,
-      });
       return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
     }
 
     const data = await request.json();
 
-    // Log des données avant mise à jour
-    console.log("Données du module à mettre à jour:", {
-      id: moduleId,
-      ...data,
-    });
+    // Validation des données
+    if (!data.title || !data.type) {
+      return NextResponse.json(
+        { error: "Données manquantes" },
+        { status: 400 }
+      );
+    }
 
     // Mettre à jour le module
     const { data: moduleData, error: moduleError } = await supabase
@@ -53,10 +46,7 @@ export async function PUT(
       .single();
 
     if (moduleError) {
-      console.error("Erreur lors de la mise à jour du module:", {
-        error: moduleError,
-        data,
-      });
+      console.error("Erreur lors de la mise à jour du module:", moduleError);
       return NextResponse.json(
         {
           error: "Erreur lors de la mise à jour du module",
@@ -83,14 +73,9 @@ export async function DELETE(
   try {
     const moduleId = context.params.moduleId;
     const supabase = await createClient();
+    const user = await getAuthUser();
 
-    // Vérifier l'authentification
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
     }
 
@@ -99,11 +84,6 @@ export async function DELETE(
       user.role === "admin" || user.user_metadata?.role === "admin";
 
     if (!isAdmin) {
-      console.log("Tentative d'accès non autorisé:", {
-        userId: user.id,
-        role: user.role,
-        metadata: user.user_metadata,
-      });
       return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
     }
 
@@ -140,33 +120,24 @@ export async function GET(
 ) {
   try {
     const moduleId = context.params.moduleId;
-    console.log("GET /api/modules/[moduleId] - ID reçu:", moduleId);
-
     const supabase = await createClient();
+    const user = await getAuthUser();
 
     // Récupérer le module
     const { data: module, error: moduleError } = await supabase
       .from("modules")
-      .select("*, exercises(*), video_url, exercise_id")
+      .select("*")
       .eq("id", moduleId)
       .single();
 
     if (moduleError) {
-      console.error("Erreur lors de la récupération du module:", {
-        error: moduleError,
-        moduleId,
-      });
       return NextResponse.json(
-        {
-          error: "Erreur lors de la récupération du module",
-          details: moduleError,
-        },
-        { status: 404 }
+        { error: "Erreur lors de la récupération du module" },
+        { status: 500 }
       );
     }
 
     if (!module) {
-      console.error("Module non trouvé:", moduleId);
       return NextResponse.json({ error: "Module non trouvé" }, { status: 404 });
     }
 
@@ -178,71 +149,47 @@ export async function GET(
       .single();
 
     if (courseError) {
-      console.error("Erreur lors de la récupération du cours:", courseError);
+      return NextResponse.json(
+        { error: "Erreur lors de la récupération du cours" },
+        { status: 500 }
+      );
     }
 
     // Récupérer les modules du cours pour déterminer le suivant et le précédent
     const { data: courseModules, error: modulesError } = await supabase
       .from("modules")
-      .select("id, title, sort_order")
+      .select("id, sort_order")
       .eq("course_id", module.course_id)
       .order("sort_order", { ascending: true });
 
     if (modulesError) {
-      console.error(
-        "Erreur lors de la récupération des modules du cours:",
-        modulesError
+      return NextResponse.json(
+        { error: "Erreur lors de la récupération des modules" },
+        { status: 500 }
       );
     }
 
-    // Déterminer le module suivant et précédent
-    let nextModuleId = null;
-    let prevModuleId = null;
+    // Trouver l'index du module actuel
+    const currentIndex = courseModules.findIndex((m) => m.id === moduleId);
+    const nextModuleId =
+      currentIndex < courseModules.length - 1
+        ? courseModules[currentIndex + 1].id
+        : null;
+    const prevModuleId =
+      currentIndex > 0 ? courseModules[currentIndex - 1].id : null;
 
-    if (courseModules && courseModules.length > 0) {
-      const currentIndex = courseModules.findIndex((m) => m.id === moduleId);
-
-      if (currentIndex !== -1) {
-        if (currentIndex > 0) {
-          prevModuleId = courseModules[currentIndex - 1].id;
-        }
-
-        if (currentIndex < courseModules.length - 1) {
-          nextModuleId = courseModules[currentIndex + 1].id;
-        }
-      }
-    }
-
-    // Vérifier si l'utilisateur est authentifié pour récupérer sa progression
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
+    // Vérifier si le module est complété pour l'utilisateur connecté
     let isCompleted = false;
-
-    if (user && !authError) {
-      // Récupérer la progression de l'utilisateur pour ce module
-      const { data: progress, error: progressError } = await supabase
-        .from("user_course_progress")
-        .select("completed_modules")
+    if (user) {
+      const { data: progress } = await supabase
+        .from("module_progress")
+        .select("completed_at")
+        .eq("module_id", moduleId)
         .eq("user_id", user.id)
-        .eq("course_id", module.course_id)
         .single();
 
-      if (!progressError && progress) {
-        isCompleted = progress.completed_modules.includes(moduleId);
-      }
+      isCompleted = !!progress;
     }
-
-    console.log("Module récupéré avec succès:", {
-      moduleId,
-      moduleTitle: module.title,
-      courseId: module.course_id,
-      nextModuleId,
-      prevModuleId,
-      isCompleted,
-    });
 
     return NextResponse.json({
       module,
