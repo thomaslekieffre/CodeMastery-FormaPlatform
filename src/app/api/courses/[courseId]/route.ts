@@ -1,76 +1,158 @@
+import { createServerClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import type { Course } from "@/types/database";
 
-export async function PUT(
+export async function GET(
   request: Request,
-  context: { params: { courseId: string } }
+  { params }: { params: { courseId: string } }
 ) {
   try {
-    const courseId = context.params.courseId;
-    const supabase = await createClient();
+    console.log("GET /api/courses/[courseId] - Début");
+    console.log("courseId:", params.courseId);
 
-    // Vérifier l'authentification
+    // Récupérer le token d'authentification depuis les headers
+    const authHeader = request.headers.get("authorization");
+    if (!authHeader) {
+      console.log("Pas de token d'authentification");
+      return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+    }
+
+    // Vérifier le token
+    const token = authHeader.replace("Bearer ", "");
+    const supabase = createServerClient(token);
+
     const {
       data: { user },
       error: authError,
     } = await supabase.auth.getUser();
 
-    if (authError || !user) {
-      return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
+    if (!user || authError) {
+      console.log("Token invalide:", { authError });
+      return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
     }
 
-    // Vérifier le rôle admin
-    const isAdmin =
-      user.role === "admin" || user.user_metadata?.role === "admin";
+    console.log("Utilisateur authentifié:", {
+      userId: user.id,
+      email: user.email,
+    });
 
-    if (!isAdmin) {
-      console.log("Tentative d'accès non autorisé:", {
-        userId: user.id,
-        role: user.role,
-        metadata: user.user_metadata,
-      });
+    console.log("Récupération du cours...");
+    const { data: course, error } = await supabase
+      .from("courses")
+      .select(
+        `
+        *,
+        modules:modules (
+          id,
+          title,
+          type,
+          sort_order
+        )
+      `
+      )
+      .eq("id", params.courseId)
+      .order("sort_order", { referencedTable: "modules", ascending: true })
+      .single();
+
+    console.log("Résultat:", { course, error });
+
+    if (error) {
+      if (error.code === "PGRST116") {
+        console.log("Cours non trouvé");
+        return NextResponse.json(
+          { error: "Cours non trouvé" },
+          { status: 404 }
+        );
+      }
+      console.error("Erreur Supabase:", error);
+      throw error;
+    }
+
+    console.log("Cours trouvé:", course);
+    return NextResponse.json({ course });
+  } catch (error) {
+    console.error("Error:", error);
+    return NextResponse.json(
+      { error: "Erreur lors de la récupération du cours" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(
+  request: Request,
+  { params }: { params: { courseId: string } }
+) {
+  try {
+    // Récupérer le token d'authentification depuis les headers
+    const authHeader = request.headers.get("authorization");
+    if (!authHeader) {
+      return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+    }
+
+    // Vérifier le token
+    const token = authHeader.replace("Bearer ", "");
+    const supabase = createServerClient(token);
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (!user || authError) {
+      return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+    }
+
+    console.log("Vérification du rôle:", {
+      userId: user.id,
+      userMetadata: user.user_metadata,
+      isAdmin: user.user_metadata?.role === "admin",
+    });
+
+    if (user.user_metadata?.role !== "admin") {
       return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
     }
 
-    const data = await request.json();
+    // Vérifier si le cours existe
+    const { data: existingCourse, error: existingError } = await supabase
+      .from("courses")
+      .select("*")
+      .eq("id", params.courseId)
+      .single();
 
-    // Log des données avant mise à jour
-    console.log("Données du parcours à mettre à jour:", {
-      id: courseId,
-      ...data,
-    });
+    if (existingError) {
+      if (existingError.code === "PGRST116") {
+        return NextResponse.json(
+          { error: "Cours non trouvé" },
+          { status: 404 }
+        );
+      }
+      throw existingError;
+    }
 
-    // Mettre à jour le parcours
-    const { data: courseData, error: courseError } = await supabase
+    const courseData = await request.json();
+
+    const { data: course, error } = await supabase
       .from("courses")
       .update({
-        ...data,
+        title: courseData.title,
+        description: courseData.description,
+        image_url: courseData.image_url,
+        difficulty: courseData.difficulty,
+        duration: courseData.duration,
+        sort_order: courseData.sort_order,
         updated_at: new Date().toISOString(),
       })
-      .eq("id", courseId)
+      .eq("id", params.courseId)
       .select()
       .single();
 
-    if (courseError) {
-      console.error("Erreur lors de la mise à jour du parcours:", {
-        error: courseError,
-        data,
-      });
-      return NextResponse.json(
-        {
-          error: "Erreur lors de la mise à jour du parcours",
-          details: courseError,
-        },
-        { status: 500 }
-      );
-    }
+    if (error) throw error;
 
-    return NextResponse.json(courseData);
-  } catch (err) {
-    console.error("Erreur serveur:", err);
+    return NextResponse.json({ course });
+  } catch (error) {
+    console.error("Error:", error);
     return NextResponse.json(
-      { error: "Erreur serveur interne" },
+      { error: "Erreur lors de la mise à jour du cours" },
       { status: 500 }
     );
   }
@@ -82,28 +164,34 @@ export async function DELETE(
 ) {
   try {
     const courseId = context.params.courseId;
-    const supabase = await createClient();
 
-    // Vérifier l'authentification
+    // Récupérer le token d'authentification depuis les headers
+    const authHeader = request.headers.get("authorization");
+    if (!authHeader) {
+      return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+    }
+
+    // Vérifier le token
+    const token = authHeader.replace("Bearer ", "");
+    const supabase = createServerClient(token);
+
     const {
       data: { user },
       error: authError,
     } = await supabase.auth.getUser();
 
-    if (authError || !user) {
-      return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
+    if (!user || authError) {
+      return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
     }
 
     // Vérifier le rôle admin
-    const isAdmin =
-      user.role === "admin" || user.user_metadata?.role === "admin";
+    const { data: userData } = await supabase
+      .from("users")
+      .select("role")
+      .eq("id", user.id)
+      .single();
 
-    if (!isAdmin) {
-      console.log("Tentative d'accès non autorisé:", {
-        userId: user.id,
-        role: user.role,
-        metadata: user.user_metadata,
-      });
+    if (userData?.role !== "admin") {
       return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
     }
 
@@ -142,58 +230,6 @@ export async function DELETE(
     }
 
     return NextResponse.json({ success: true });
-  } catch (err) {
-    console.error("Erreur serveur:", err);
-    return NextResponse.json(
-      { error: "Erreur serveur interne" },
-      { status: 500 }
-    );
-  }
-}
-
-export async function GET(
-  request: Request,
-  { params }: { params: { courseId: string } }
-) {
-  try {
-    const { courseId } = params;
-    const supabase = await createClient();
-
-    const { data: course, error: courseError } = await supabase
-      .from("courses")
-      .select("*")
-      .eq("id", courseId)
-      .single();
-
-    if (courseError) {
-      console.error("Erreur lors de la récupération du parcours:", courseError);
-      return NextResponse.json(
-        { error: "Erreur lors de la récupération du parcours" },
-        { status: 500 }
-      );
-    }
-
-    const { data: modules, error: modulesError } = await supabase
-      .from("modules")
-      .select("*")
-      .eq("course_id", courseId)
-      .order("sort_order", { ascending: true });
-
-    if (modulesError) {
-      console.error(
-        "Erreur lors de la récupération des modules:",
-        modulesError
-      );
-      return NextResponse.json(
-        { error: "Erreur lors de la récupération des modules" },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json({
-      ...course,
-      modules,
-    });
   } catch (err) {
     console.error("Erreur serveur:", err);
     return NextResponse.json(

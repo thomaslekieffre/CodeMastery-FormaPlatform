@@ -14,6 +14,7 @@ import { ArrowLeft, FileText, Code, PlayCircle } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 import type { Course } from "@/types/database";
+import { createClient } from "@/lib/supabase/client";
 
 interface FormData {
   title: string;
@@ -48,12 +49,28 @@ export default function CreateModulePage() {
     const fetchCourse = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`/api/courses/${courseId}`);
+        const supabase = createClient();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        if (!session) {
+          toast.error("Vous devez être connecté");
+          router.push("/login");
+          return;
+        }
+
+        const response = await fetch(`/api/courses/${courseId}`, {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        });
+
         if (!response.ok) {
           throw new Error("Erreur lors de la récupération du cours");
         }
-        const data = await response.json();
-        setCourse(data);
+        const { course } = await response.json();
+        setCourse(course);
       } catch (error) {
         console.error("Erreur:", error);
         toast.error("Impossible de charger le cours");
@@ -63,13 +80,23 @@ export default function CreateModulePage() {
     };
 
     fetchCourse();
-  }, [courseId]);
+  }, [courseId, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
 
     try {
+      const supabase = createClient();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session) {
+        toast.error("Vous devez être connecté");
+        return;
+      }
+
       // Nettoyage des données selon le type
       const dataToSend = {
         title: formData.title,
@@ -103,6 +130,7 @@ export default function CreateModulePage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify(dataToSend),
       });

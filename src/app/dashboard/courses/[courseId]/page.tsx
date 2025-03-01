@@ -23,6 +23,7 @@ import { useAppStore } from "@/store/use-app-store";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 import type { Course, Module } from "@/types/database";
+import { createClient } from "@/lib/supabase/client";
 
 interface CourseProgressResponse {
   totalModules: number;
@@ -40,7 +41,9 @@ const moduleTypeIcons = {
 export default function CourseDetailPage() {
   const { courseId } = useParams();
   const router = useRouter();
-  const [course, setCourse] = useState<Course & { modules?: Module[] }>();
+  const [course, setCourse] = useState<
+    (Course & { modules?: Module[] }) | null
+  >(null);
   const [loading, setLoading] = useState(true);
   const [courseProgress, setCourseProgress] =
     useState<CourseProgressResponse | null>(null);
@@ -52,18 +55,40 @@ export default function CourseDetailPage() {
     const fetchCourse = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`/api/courses/${courseId}`);
+        const supabase = createClient();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        if (!session) {
+          toast.error("Vous devez être connecté");
+          router.push("/login");
+          return;
+        }
+
+        const response = await fetch(`/api/courses/${courseId}`, {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        });
+
         if (!response.ok) {
           throw new Error("Erreur lors de la récupération du cours");
         }
-        const data = await response.json();
-        setCourse(data);
+
+        const { course } = await response.json();
+        setCourse(course);
 
         // Récupérer la progression si l'utilisateur est connecté
         if (isAuthenticated) {
           try {
             const progressResponse = await fetch(
-              `/api/courses/${courseId}/progress`
+              `/api/courses/${courseId}/progress`,
+              {
+                headers: {
+                  Authorization: `Bearer ${session.access_token}`,
+                },
+              }
             );
             if (progressResponse.ok) {
               const progressData = await progressResponse.json();
@@ -85,7 +110,7 @@ export default function CourseDetailPage() {
     };
 
     fetchCourse();
-  }, [courseId, isAuthenticated]);
+  }, [courseId, isAuthenticated, router]);
 
   const startCourse = async () => {
     if (!isAuthenticated) {
@@ -94,8 +119,16 @@ export default function CourseDetailPage() {
     }
 
     try {
+      const supabase = createClient();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
       const response = await fetch(`/api/courses/${courseId}/start`, {
         method: "POST",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
       });
 
       if (!response.ok) {
@@ -138,11 +171,8 @@ export default function CourseDetailPage() {
   };
 
   const completedModules = courseProgress?.completedModuleIds || [];
-  const totalModules = course?.modules?.length || 0;
-  const progressPercentage =
-    totalModules > 0
-      ? Math.round((completedModules.length / totalModules) * 100)
-      : 0;
+  const totalModules = courseProgress?.totalModules || 0;
+  const progressPercentage = courseProgress?.progressPercentage || 0;
 
   if (loading) {
     return (

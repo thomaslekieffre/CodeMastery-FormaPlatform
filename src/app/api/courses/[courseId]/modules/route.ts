@@ -2,19 +2,37 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthUser } from "@/lib/auth/helpers";
 import type { Module } from "@/types/database";
+import { createServerClient } from "@/lib/supabase/server";
 
 export async function GET(
   request: Request,
-  context: { params: { courseId: string } }
+  { params }: { params: { courseId: string } }
 ) {
   try {
-    const courseId = context.params.courseId;
-    const supabase = await createClient();
+    // Récupérer le token d'authentification depuis les headers
+    const authHeader = request.headers.get("authorization");
+    if (!authHeader) {
+      return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+    }
 
+    // Vérifier le token
+    const token = authHeader.replace("Bearer ", "");
+    const supabase = createServerClient(token);
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (!user || authError) {
+      return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+    }
+
+    // Récupérer les modules du cours
     const { data: modules, error } = await supabase
       .from("modules")
       .select("*")
-      .eq("course_id", courseId)
+      .eq("course_id", params.courseId)
       .order("sort_order", { ascending: true });
 
     if (error) {
@@ -25,7 +43,7 @@ export async function GET(
       );
     }
 
-    return NextResponse.json(modules);
+    return NextResponse.json({ modules });
   } catch (err) {
     console.error("Erreur serveur:", err);
     return NextResponse.json(

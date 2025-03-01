@@ -1,48 +1,33 @@
-import { createServerClient } from "@supabase/ssr";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-export async function middleware(request: NextRequest) {
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return request.cookies.get(name)?.value;
-        },
-        set(name: string, value: string, options: any) {
-          // Ne rien faire, car nous ne modifions pas les cookies
-        },
-        remove(name: string, options: any) {
-          // Ne rien faire, car nous ne modifions pas les cookies
-        },
-      },
-    }
-  );
+export async function middleware(req: NextRequest) {
+  const res = NextResponse.next();
 
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
+  // Vérifier si on a un token dans les cookies (format Supabase)
+  const hasSession = req.cookies
+    .getAll()
+    .some(
+      (cookie) =>
+        cookie.name.startsWith("sb-") &&
+        cookie.name.endsWith("-auth-token") &&
+        !cookie.name.endsWith("-auth-token-code-verifier")
+    );
 
-  if (error || !user) {
-    return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
+  console.log("Cookie check:", {
+    hasSession,
+    cookies: req.cookies.getAll().map((c) => c.name),
+  });
+
+  // Rediriger vers /login si pas de session et on essaie d'accéder au dashboard
+  if (!hasSession && req.nextUrl.pathname.startsWith("/dashboard")) {
+    const redirectUrl = new URL("/login", req.url);
+    return NextResponse.redirect(redirectUrl);
   }
 
-  // Si c'est une route API admin
-  if (request.nextUrl.pathname.startsWith("/api/exercises")) {
-    const userRole = user.user_metadata?.role;
-    if (userRole !== "admin") {
-      return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
-    }
-  }
-
-  const response = NextResponse.next();
-  response.headers.set("x-user-role", user.user_metadata?.role || "");
-  return response;
+  return res;
 }
 
 export const config = {
-  matcher: ["/api/exercises/:path*"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|public).*)"],
 };

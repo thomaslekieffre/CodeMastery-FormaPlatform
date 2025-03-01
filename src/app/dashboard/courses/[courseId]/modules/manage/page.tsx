@@ -21,6 +21,7 @@ import {
 import { toast } from "sonner";
 import Link from "next/link";
 import type { Course, Module } from "@/types/database";
+import { createClient } from "@/lib/supabase/client";
 import {
   DndContext,
   closestCenter,
@@ -143,22 +144,41 @@ export default function ManageModulesPage() {
     const fetchCourseAndModules = async () => {
       try {
         setLoading(true);
+        const supabase = createClient();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        if (!session) {
+          toast.error("Vous devez être connecté");
+          router.push("/login");
+          return;
+        }
+
         const [courseRes, modulesRes] = await Promise.all([
-          fetch(`/api/courses/${courseId}`),
-          fetch(`/api/courses/${courseId}/modules`),
+          fetch(`/api/courses/${courseId}`, {
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+            },
+          }),
+          fetch(`/api/courses/${courseId}/modules`, {
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+            },
+          }),
         ]);
 
         if (!courseRes.ok || !modulesRes.ok) {
           throw new Error("Erreur lors de la récupération des données");
         }
 
-        const [courseData, modulesData] = await Promise.all([
+        const [{ course }, { modules }] = await Promise.all([
           courseRes.json(),
           modulesRes.json(),
         ]);
 
-        setCourse(courseData);
-        setModules(modulesData);
+        setCourse(course);
+        setModules(modules);
       } catch (error) {
         console.error("Erreur:", error);
         toast.error("Impossible de charger les données");
@@ -168,14 +188,27 @@ export default function ManageModulesPage() {
     };
 
     fetchCourseAndModules();
-  }, [courseId]);
+  }, [courseId, router]);
 
   const handleDelete = async (moduleId: string) => {
     if (!confirm("Êtes-vous sûr de vouloir supprimer ce module ?")) return;
 
     try {
+      const supabase = createClient();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session) {
+        toast.error("Vous devez être connecté");
+        return;
+      }
+
       const response = await fetch(`/api/modules/${moduleId}`, {
         method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
       });
 
       if (!response.ok) {
@@ -201,22 +234,45 @@ export default function ManageModulesPage() {
         const newItems = arrayMove(items, oldIndex, newIndex);
 
         // Mettre à jour l'ordre sur le serveur
-        fetch(`/api/courses/${courseId}/modules/reorder`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            modules: newItems.map((item, index) => ({
-              id: item.id,
-              order: index,
-            })),
-          }),
-        }).catch((error) => {
-          console.error("Erreur lors de la réorganisation:", error);
-          toast.error("Impossible de sauvegarder l'ordre des modules");
-        });
+        const updateOrder = async () => {
+          try {
+            const supabase = createClient();
+            const {
+              data: { session },
+            } = await supabase.auth.getSession();
 
+            if (!session) {
+              toast.error("Vous devez être connecté");
+              return;
+            }
+
+            const response = await fetch(
+              `/api/courses/${courseId}/modules/reorder`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${session.access_token}`,
+                },
+                body: JSON.stringify({
+                  modules: newItems.map((item, index) => ({
+                    id: item.id,
+                    order: index,
+                  })),
+                }),
+              }
+            );
+
+            if (!response.ok) {
+              throw new Error("Erreur lors de la réorganisation");
+            }
+          } catch (error) {
+            console.error("Erreur lors de la réorganisation:", error);
+            toast.error("Impossible de sauvegarder l'ordre des modules");
+          }
+        };
+
+        updateOrder();
         return newItems;
       });
     }

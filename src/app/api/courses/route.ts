@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createServerClient } from "@/lib/supabase/server";
 import { getAuthUser } from "@/lib/auth/helpers";
 import type { Course } from "@/types/database";
 
 export async function POST(request: Request) {
   try {
-    const supabase = await createClient();
+    const supabase = createServerClient();
     const user = await getAuthUser();
 
     if (!user) {
@@ -80,7 +80,7 @@ export async function POST(request: Request) {
 
 export async function GET() {
   try {
-    const supabase = await createClient();
+    const supabase = createServerClient();
 
     const { data: courses, error } = await supabase
       .from("courses")

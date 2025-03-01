@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
 
-export async function GET(
+export async function POST(
   request: Request,
   context: { params: { courseId: string } }
 ) {
@@ -27,6 +27,17 @@ export async function GET(
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
     }
 
+    // Vérifier si le cours existe
+    const { data: course, error: courseError } = await supabase
+      .from("courses")
+      .select("id")
+      .eq("id", courseId)
+      .single();
+
+    if (courseError || !course) {
+      return NextResponse.json({ error: "Cours non trouvé" }, { status: 404 });
+    }
+
     // Récupérer tous les modules du cours
     const { data: modules, error: modulesError } = await supabase
       .from("modules")
@@ -35,59 +46,32 @@ export async function GET(
       .order("sort_order", { ascending: true });
 
     if (modulesError) {
-      console.error(
-        "Erreur lors de la récupération des modules:",
-        modulesError
-      );
       return NextResponse.json(
         { error: "Erreur lors de la récupération des modules" },
         { status: 500 }
       );
     }
 
-    if (!modules || modules.length === 0) {
-      return NextResponse.json(
-        { error: "Aucun module trouvé" },
-        { status: 404 }
-      );
-    }
-
-    // Récupérer les modules complétés par l'utilisateur
+    // Récupérer les modules déjà complétés
     const { data: completedModules, error: progressError } = await supabase
       .from("module_progress")
-      .select("module_id, completed_at")
+      .select("module_id")
       .eq("user_id", user.id)
-      .in(
-        "module_id",
-        modules.map((m) => m.id)
-      );
+      .in("module_id", modules?.map((m) => m.id) || []);
 
     if (progressError) {
-      console.error(
-        "Erreur lors de la récupération de la progression:",
-        progressError
-      );
       return NextResponse.json(
         { error: "Erreur lors de la récupération de la progression" },
         { status: 500 }
       );
     }
 
-    // Calculer le pourcentage de progression
-    const totalModules = modules.length;
+    // Calculer la progression
+    const totalModules = modules?.length || 0;
     const completedCount = completedModules?.length || 0;
     const progressPercentage = Math.round(
       (completedCount / totalModules) * 100
     );
-
-    console.log({
-      userId: user.id,
-      courseId,
-      modules: modules.map((m) => m.id),
-      completedModules: completedModules?.map((m) => m.module_id),
-      totalModules,
-      completedCount,
-    });
 
     return NextResponse.json({
       totalModules,

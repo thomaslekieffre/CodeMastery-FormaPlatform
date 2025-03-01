@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { ArrowLeft, Edit, Save } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
 import type { Course } from "@/types/database";
 
 export default function EditCoursePage() {
@@ -34,19 +35,36 @@ export default function EditCoursePage() {
     const fetchCourse = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`/api/courses/${courseId}`);
+        const supabase = createClient();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        if (!session) {
+          toast.error("Vous devez être connecté");
+          router.push("/login");
+          return;
+        }
+
+        const response = await fetch(`/api/courses/${courseId}`, {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        });
+
         if (!response.ok) {
           throw new Error("Erreur lors de la récupération du cours");
         }
-        const data = await response.json();
-        setCourse(data);
+
+        const { course } = await response.json();
+        setCourse(course);
         setFormData({
-          title: data.title || "",
-          description: data.description || "",
-          image_url: data.image_url || "",
-          duration: data.duration || "",
-          difficulty: data.difficulty || "facile",
-          sort_order: data.sort_order || 0,
+          title: course.title || "",
+          description: course.description || "",
+          image_url: course.image_url || "",
+          duration: course.duration || "",
+          difficulty: course.difficulty || "facile",
+          sort_order: course.sort_order || 0,
         });
       } catch (error) {
         console.error("Erreur:", error);
@@ -57,7 +75,7 @@ export default function EditCoursePage() {
     };
 
     fetchCourse();
-  }, [courseId]);
+  }, [courseId, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,10 +87,22 @@ export default function EditCoursePage() {
 
     try {
       setSaving(true);
+      const supabase = createClient();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session) {
+        toast.error("Vous devez être connecté");
+        router.push("/login");
+        return;
+      }
+
       const response = await fetch(`/api/courses/${courseId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify(formData),
       });
