@@ -1,133 +1,92 @@
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { createClient } from "@supabase/supabase-js";
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import type { Exercise, ExerciseTest } from "@/types/database";
+import { createServerClient } from "@/lib/supabase/server";
 
-export async function POST(request: Request) {
+export async function POST(req: Request) {
   try {
-    const supabase = await createClient();
+    const supabase = createRouteHandlerClient({ cookies });
 
     // Vérifier l'authentification
     const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session) {
+      return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
     }
 
-    // Vérifier le rôle admin de manière plus robuste
-    const isAdmin =
-      user.role === "admin" || user.user_metadata?.role === "admin";
-
-    if (!isAdmin) {
-      console.log("Tentative d'accès non autorisé:", {
-        userId: user.id,
-        role: user.role,
-        metadata: user.user_metadata,
-      });
-      return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
+    // Vérifier si admin via les métadonnées
+    if (session.user.user_metadata.role !== "admin") {
+      return NextResponse.json(
+        { error: "Accès réservé aux administrateurs" },
+        { status: 403 }
+      );
     }
 
-    const data = await request.json();
-    const { tests, updated_at, ...exercise } = data;
+    // Créer un client avec les droits de service pour bypass RLS
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
 
-    // Log des données avant insertion
-    console.log("Données de l'exercice à insérer:", {
-      ...exercise,
-      created_by: user.id,
-    });
+    const { test_code, technologies, ...exerciseData } = await req.json();
 
-    // Insérer l'exercice
-    const { data: exerciseData, error: exerciseError } = await supabase
+    // Créer l'exercice avec le client admin
+    const { data: exercise, error } = await supabaseAdmin
       .from("exercises")
       .insert([
         {
-          ...exercise,
-          created_by: user.id,
+          title: exerciseData.title,
+          description: exerciseData.description,
+          difficulty: exerciseData.difficulty,
+          duration: exerciseData.duration,
+          instructions: exerciseData.instructions,
+          initial_code: exerciseData.initial_code,
+          language: exerciseData.language,
+          technologies: technologies,
+          created_by: session.user.id,
+          created_at: new Date().toISOString(),
+          is_published: false,
         },
       ])
       .select()
       .single();
 
-    if (exerciseError) {
-      // Log détaillé de l'erreur
-      console.error("Erreur détaillée lors de la création de l'exercice:", {
-        error: exerciseError,
-        errorCode: exerciseError.code,
-        errorMessage: exerciseError.message,
-        errorDetails: exerciseError.details,
-        data: exercise,
-        userId: user.id,
-        userRole: user.role,
-        userMetadata: user.user_metadata,
-      });
-
+    if (error) {
+      console.error("Erreur Supabase:", error);
       return NextResponse.json(
-        {
-          error: "Erreur lors de la création de l'exercice",
-          details: exerciseError,
-        },
+        { error: "Erreur lors de la création de l'exercice" },
         { status: 500 }
       );
     }
 
-    // Log du succès
-    console.log("Exercice créé avec succès:", exerciseData);
+    // Créer le test avec le client admin
+    const { error: testError } = await supabaseAdmin
+      .from("exercise_tests")
+      .insert({
+        exercise_id: exercise.id,
+        name: "Test principal",
+        description: "Test de validation principal",
+        validation_code: test_code,
+        created_by: session.user.id,
+        created_at: new Date().toISOString(),
+      });
 
-    // Insérer les tests
-    if (tests && tests.length > 0) {
-      const testsWithExerciseId = tests.map(
-        (test: Omit<ExerciseTest, "id" | "exercise_id" | "created_at">) => ({
-          ...test,
-          exercise_id: exerciseData.id,
-          created_by: user.id,
-        })
-      );
-
-      // Log des tests à insérer
-      console.log("Tests à insérer:", testsWithExerciseId);
-
-      const { error: testsError } = await supabase
-        .from("exercise_tests")
-        .insert(testsWithExerciseId);
-
-      if (testsError) {
-        console.error("Erreur détaillée lors de la création des tests:", {
-          error: testsError,
-          errorCode: testsError.code,
-          errorMessage: testsError.message,
-          errorDetails: testsError.details,
-          userRole: user.role,
-          userMetadata: user.user_metadata,
-        });
-        return NextResponse.json(
-          {
-            error: "Erreur lors de la création des tests",
-            details: testsError,
-          },
-          { status: 500 }
-        );
-      }
+    if (testError) {
+      console.error("Erreur création test:", testError);
     }
 
-    return NextResponse.json(exerciseData);
+    return NextResponse.json(exercise);
   } catch (error) {
-    // Log détaillé de l'erreur générale
-    console.error("Erreur détaillée lors de la création de l'exercice:", {
-      error,
-      stack: error instanceof Error ? error.stack : undefined,
-    });
-    return NextResponse.json(
-      { error: "Erreur lors de la création de l'exercice", details: error },
-      { status: 500 }
-    );
+    console.error("Erreur:", error);
+    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
   }
 }
 
 export async function GET() {
   try {
-    const supabase = await createClient();
+    const supabase = createServerClient();
     const { data, error } = await supabase
       .from("exercises")
       .select("*")
