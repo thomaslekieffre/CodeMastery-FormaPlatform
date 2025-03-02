@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { CheckCircle, Circle, PlayCircle, FileText, Code } from "lucide-react";
+import { CheckCircle, Circle, PlayCircle, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Module } from "@/types/database";
 
@@ -14,8 +14,7 @@ interface ModuleListProps {
 const moduleTypeIcons = {
   video: PlayCircle,
   article: FileText,
-  exercise: Code,
-};
+} as const;
 
 export function ModuleList({
   modules,
@@ -25,7 +24,8 @@ export function ModuleList({
   return (
     <div className="space-y-1">
       {modules.map((module) => {
-        const Icon = moduleTypeIcons[module.type];
+        const Icon =
+          moduleTypeIcons[module.type as keyof typeof moduleTypeIcons];
         const isCompleted = completedModules.includes(module.id);
         const isCurrent = module.id === currentModuleId;
 

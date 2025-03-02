@@ -1,14 +1,8 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import type { User as SupabaseUser } from "@supabase/supabase-js";
 
-type User = {
-  id: string;
-  email: string;
-  role: "admin" | "teacher" | "student";
-  user_metadata?: {
-    name?: string;
-  };
-};
+type User = SupabaseUser;
 
 type AppState = {
   user: User | null;

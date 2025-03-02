@@ -53,24 +53,6 @@ const teacherRoutes = [
     color: "text-green-500",
   },
   {
-    name: "Exercices",
-    href: "/dashboard/exercises",
-    icon: Code2,
-    color: "text-pink-500",
-  },
-  {
-    name: "Création d'exercices",
-    href: "/dashboard/exercises/create",
-    icon: FileCode,
-    color: "text-blue-500",
-  },
-  {
-    name: "Gestion des exercices",
-    href: "/dashboard/exercises/manage",
-    icon: BookOpenCheck,
-    color: "text-indigo-500",
-  },
-  {
     name: "Étudiants",
     href: "/dashboard/students",
     icon: Users,
@@ -115,12 +97,6 @@ const studentRoutes = [
     color: "text-pink-500",
   },
   {
-    name: "Exercices",
-    href: "/dashboard/exercises",
-    icon: Code2,
-    color: "text-orange-500",
-  },
-  {
     name: "Forum",
     href: "/dashboard/forum",
     icon: MessageSquare,
@@ -158,24 +134,7 @@ const adminRoutes = [
     icon: PlusCircle,
     color: "text-green-500",
   },
-  {
-    name: "Exercices",
-    href: "/dashboard/exercises",
-    icon: Code2,
-    color: "text-pink-500",
-  },
-  {
-    name: "Création d'exercices",
-    href: "/dashboard/exercises/create",
-    icon: FileCode,
-    color: "text-blue-500",
-  },
-  {
-    name: "Gestion des exercices",
-    href: "/dashboard/exercises/manage",
-    icon: BookOpenCheck,
-    color: "text-indigo-500",
-  },
+
   {
     name: "Forum",
     href: "/dashboard/forum",
@@ -214,9 +173,9 @@ export function Sidebar() {
   };
 
   const routes =
-    user?.role === "admin"
+    user?.role === "admin" || user?.user_metadata?.role === "admin"
       ? adminRoutes
-      : user?.role === "teacher"
+      : user?.role === "teacher" || user?.user_metadata?.role === "teacher"
       ? teacherRoutes
       : studentRoutes;
 

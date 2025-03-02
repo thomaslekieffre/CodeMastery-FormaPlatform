@@ -11,18 +11,35 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { useAppStore } from "@/store/use-app-store";
 import type { Course } from "@/types/database";
+import { createClient } from "@/lib/supabase/client";
 
 export default function CoursesPage() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAppStore();
-  const isAdmin = user?.role === "admin";
+  const isAdmin =
+    user?.role === "admin" || user?.user_metadata?.role === "admin";
 
   useEffect(() => {
     const fetchCourses = async () => {
       try {
         setLoading(true);
-        const response = await fetch("/api/courses");
+        const supabase = createClient();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        if (!session) {
+          toast.error("Vous devez être connecté");
+          return;
+        }
+
+        const response = await fetch("/api/courses", {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            "Content-Type": "application/json",
+          },
+        });
         if (!response.ok) {
           throw new Error("Erreur lors de la récupération des cours");
         }
@@ -43,12 +60,27 @@ export default function CoursesPage() {
     if (!confirm("Êtes-vous sûr de vouloir supprimer ce cours ?")) return;
 
     try {
+      const supabase = createClient();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session) {
+        toast.error("Vous devez être connecté");
+        return;
+      }
+
       const response = await fetch(`/api/courses/${id}`, {
         method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          "Content-Type": "application/json",
+        },
       });
 
       if (!response.ok) {
-        throw new Error("Erreur lors de la suppression");
+        const error = await response.json();
+        throw new Error(error.error || "Erreur lors de la suppression");
       }
 
       setCourses((prev) => prev.filter((course) => course.id !== id));

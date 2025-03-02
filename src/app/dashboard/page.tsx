@@ -119,34 +119,6 @@ export default function DashboardPage() {
 
             <Card className="hover:border-primary/40 transition-colors">
               <CardHeader className="pb-3">
-                <Code className="h-8 w-8 text-primary mb-2" />
-                <CardTitle>Exercices</CardTitle>
-                <CardDescription>
-                  Pratiquez vos compétences avec des exercices interactifs
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pb-2">
-                <div className="flex justify-between text-sm text-muted-foreground">
-                  <span>Exercices complétés: 12</span>
-                  <span>Total: 30</span>
-                </div>
-              </CardContent>
-              <CardFooter>
-                <Button
-                  variant="ghost"
-                  className="w-full justify-between group hover:text-primary"
-                  asChild
-                >
-                  <Link href="/dashboard/exercises">
-                    Voir les exercices
-                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                  </Link>
-                </Button>
-              </CardFooter>
-            </Card>
-
-            <Card className="hover:border-primary/40 transition-colors">
-              <CardHeader className="pb-3">
                 <MessageSquare className="h-8 w-8 text-primary mb-2" />
                 <CardTitle>Forum</CardTitle>
                 <CardDescription>

@@ -36,12 +36,6 @@ const teacherRoutes = [
     color: "text-violet-500",
   },
   {
-    label: "Exercices",
-    icon: Code2,
-    href: "/dashboard/exercises",
-    color: "text-pink-500",
-  },
-  {
     label: "Étudiants",
     icon: Users,
     href: "/dashboard/students",
@@ -86,12 +80,6 @@ const studentRoutes = [
     color: "text-pink-500",
   },
   {
-    label: "Exercices",
-    icon: Code2,
-    href: "/dashboard/exercises",
-    color: "text-orange-500",
-  },
-  {
     label: "Forum",
     icon: MessageSquare,
     href: "/dashboard/forum",
@@ -118,22 +106,10 @@ const adminRoutes = [
     color: "text-yellow-500",
   },
   {
-    label: "Gestion des exercices",
-    icon: Code2,
-    href: "/admin/exercises",
-    color: "text-violet-500",
-  },
-  {
     label: "Cours",
     icon: BookOpen,
     href: "/dashboard/courses",
     color: "text-pink-500",
-  },
-  {
-    label: "Exercices",
-    icon: Code2,
-    href: "/dashboard/exercises",
-    color: "text-orange-500",
   },
   {
     label: "Forum",
@@ -153,9 +129,9 @@ export function Sidebar() {
   const { user } = useAppStore();
 
   const routes =
-    user?.role === "admin"
+    user?.role === "admin" || user?.user_metadata?.role === "admin"
       ? adminRoutes
-      : user?.role === "teacher"
+      : user?.role === "teacher" || user?.user_metadata?.role === "teacher"
       ? teacherRoutes
       : studentRoutes;
 

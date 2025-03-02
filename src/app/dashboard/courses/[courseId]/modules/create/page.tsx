@@ -289,29 +289,6 @@ export default function CreateModulePage() {
                         />
                       </div>
                     )}
-
-                    {moduleType === "exercise" && (
-                      <div className="space-y-2">
-                        <Label htmlFor="exercise_id">ID de l'exercice *</Label>
-                        <Input
-                          id="exercise_id"
-                          value={formData.exercise_id}
-                          onChange={(e) =>
-                            setFormData((prev) => ({
-                              ...prev,
-                              exercise_id: e.target.value,
-                            }))
-                          }
-                          placeholder="ex: 123e4567-e89b-12d3-a456-426614174000"
-                          className="max-w-xl"
-                          required
-                        />
-                        <p className="text-sm text-muted-foreground">
-                          Entrez l'ID de l'exercice créé dans la section
-                          Exercices.
-                        </p>
-                      </div>
-                    )}
                   </div>
 
                   <div className="flex gap-4">

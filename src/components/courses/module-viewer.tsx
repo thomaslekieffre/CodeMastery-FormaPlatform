@@ -5,17 +5,12 @@ import { ArrowLeft, ArrowRight, CheckCircle } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Markdown } from "@/components/markdown";
-import { ExerciseRunner } from "@/components/exercises/exercise-runner";
-import {
-  updateExerciseProgress,
-  updateCourseProgress,
-  trackTime,
-} from "@/lib/queries";
+import { updateCourseProgress, trackTime } from "@/lib/queries";
 import { useAppStore } from "@/store/use-app-store";
-import type { Module, Course, Exercise, ExerciseTest } from "@/types/database";
+import type { Module, Course } from "@/types/database";
 
 interface ModuleViewerProps {
-  module: Module & { exercises?: (Exercise & { tests: ExerciseTest[] })[] };
+  module: Module;
   course: Course;
   nextModuleId?: string;
   prevModuleId?: string;
@@ -32,7 +27,6 @@ export function ModuleViewer({
   const { user } = useAppStore();
   const [isCompleting, setIsCompleting] = useState(false);
   const [startTime] = useState(Date.now());
-  const exercise = module.exercises?.[0];
 
   // Tracker le temps passé quand l'utilisateur quitte le module
   useEffect(() => {
@@ -54,16 +48,6 @@ export function ModuleViewer({
     setIsCompleting(true);
 
     try {
-      // Mettre à jour la progression de l'exercice si c'est un exercice
-      if (exercise) {
-        await updateExerciseProgress({
-          userId: user.id,
-          exerciseId: exercise.id,
-          code: "", // Le code sera géré par le composant d'exercice
-          status: "completed",
-        });
-      }
-
       // Mettre à jour la progression du cours
       await updateCourseProgress({
         userId: user.id,
@@ -106,12 +90,6 @@ export function ModuleViewer({
           </div>
         )}
 
-        {module.type === "exercise" && exercise && (
-          <div className="my-8">
-            <ExerciseRunner exercise={exercise} onComplete={handleComplete} />
-          </div>
-        )}
-
         <Markdown content={module.content} />
       </div>
 
@@ -127,16 +105,14 @@ export function ModuleViewer({
           )}
         </div>
 
-        {module.type !== "exercise" && (
-          <Button
-            onClick={handleComplete}
-            disabled={isCompleting}
-            className="inline-flex items-center gap-2"
-          >
-            <CheckCircle className="h-4 w-4" />
-            {isCompleting ? "Validation..." : "Marquer comme terminé"}
-          </Button>
-        )}
+        <Button
+          onClick={handleComplete}
+          disabled={isCompleting}
+          className="inline-flex items-center gap-2"
+        >
+          <CheckCircle className="h-4 w-4" />
+          {isCompleting ? "Validation..." : "Marquer comme terminé"}
+        </Button>
 
         <div>
           {nextModuleId && (

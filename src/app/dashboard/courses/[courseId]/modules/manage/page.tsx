@@ -11,7 +11,6 @@ import {
   ArrowLeft,
   BookOpen,
   FileText,
-  Code,
   PlayCircle,
   Plus,
   Trash2,
@@ -46,8 +45,6 @@ const getModuleIcon = (type: string) => {
       return PlayCircle;
     case "article":
       return FileText;
-    case "exercise":
-      return Code;
     default:
       return BookOpen;
   }
@@ -97,11 +94,7 @@ function SortableModuleItem({ module, onDelete }: SortableModuleItemProps) {
           <div>
             <h3 className="font-medium">{module.title}</h3>
             <p className="text-sm text-muted-foreground">
-              {module.type === "video"
-                ? "Vidéo"
-                : module.type === "article"
-                ? "Article"
-                : "Exercice"}
+              {module.type === "video" ? "Vidéo" : "Article"}
             </p>
           </div>
         </div>
@@ -318,17 +311,9 @@ export default function ManageModulesPage() {
                   <Link
                     href={`/dashboard/courses/${courseId}/modules/create?type=video`}
                   >
-                    <Button variant="outline">
+                    <Button>
                       <PlayCircle className="mr-2 h-4 w-4" />
                       Vidéo
-                    </Button>
-                  </Link>
-                  <Link
-                    href={`/dashboard/courses/${courseId}/modules/create?type=exercise`}
-                  >
-                    <Button>
-                      <Code className="mr-2 h-4 w-4" />
-                      Exercice
                     </Button>
                   </Link>
                 </div>

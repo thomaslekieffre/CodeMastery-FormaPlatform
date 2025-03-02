@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { Session, User } from "@supabase/supabase-js";
+import { useAppStore } from "@/store/use-app-store";
 
 interface AuthContextType {
   session: Session | null;
@@ -22,6 +23,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { setUser: setStoreUser } = useAppStore();
 
   const checkSession = async () => {
     try {
@@ -33,6 +35,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       setSession(session);
       setUser(session?.user ?? null);
+      setStoreUser(session?.user ?? null);
       console.log("Session checked in AuthProvider:", {
         session,
         user: session?.user,
@@ -41,6 +44,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error("Session check failed:", error);
       setSession(null);
       setUser(null);
+      setStoreUser(null);
     } finally {
       setIsLoading(false);
     }
@@ -55,6 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log("Auth state changed in AuthProvider:", { event, session });
       setSession(session);
       setUser(session?.user ?? null);
+      setStoreUser(session?.user ?? null);
       setIsLoading(false);
     });
 

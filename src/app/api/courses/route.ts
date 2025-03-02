@@ -1,14 +1,38 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
-import { getAuthUser } from "@/lib/auth/helpers";
 import type { Course } from "@/types/database";
+
+export async function GET(request: Request) {
+  try {
+    const supabase = createServerClient();
+    const { data: courses, error } = await supabase
+      .from("courses")
+      .select("*")
+      .order("sort_order", { ascending: true });
+
+    if (error) throw error;
+
+    return NextResponse.json(courses);
+  } catch (error) {
+    console.error("Error:", error);
+    return NextResponse.json(
+      { error: "Erreur lors de la récupération des cours" },
+      { status: 500 }
+    );
+  }
+}
 
 export async function POST(request: Request) {
   try {
     const supabase = createServerClient();
-    const user = await getAuthUser();
 
-    if (!user) {
+    // Vérifier l'authentification
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (!user || authError) {
       return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
     }
 
@@ -69,36 +93,10 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json(courseData);
-  } catch (err) {
-    console.error("Erreur serveur:", err);
+  } catch (error) {
+    console.error("Error:", error);
     return NextResponse.json(
-      { error: "Erreur serveur interne" },
-      { status: 500 }
-    );
-  }
-}
-
-export async function GET() {
-  try {
-    const supabase = createServerClient();
-
-    const { data: courses, error } = await supabase
-      .from("courses")
-      .select("*")
-      .order("sort_order", { ascending: true });
-
-    if (error) {
-      return NextResponse.json(
-        { error: "Erreur lors de la récupération des cours" },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json(courses);
-  } catch (err) {
-    console.error("Erreur serveur:", err);
-    return NextResponse.json(
-      { error: "Erreur serveur interne" },
+      { error: "Erreur lors de la création du cours" },
       { status: 500 }
     );
   }

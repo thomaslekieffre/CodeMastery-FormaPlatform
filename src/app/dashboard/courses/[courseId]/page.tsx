@@ -49,7 +49,8 @@ export default function CourseDetailPage() {
     useState<CourseProgressResponse | null>(null);
   const { user } = useAppStore();
   const { isAuthenticated } = useAuth();
-  const isAdmin = user?.role === "admin";
+  const isAdmin =
+    user?.role === "admin" || user?.user_metadata?.role === "admin";
 
   useEffect(() => {
     const fetchCourse = async () => {

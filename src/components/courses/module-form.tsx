@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import type { Module, Exercise } from "@/types/database";
+import type { Module } from "@/types/database";
 
 interface ModuleFormProps {
   courseId: string;
@@ -16,7 +16,6 @@ export function ModuleForm({ courseId, initialData, mode }: ModuleFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [exercises, setExercises] = useState<Exercise[]>([]);
   const [formData, setFormData] = useState<Partial<Module>>(
     initialData || {
       course_id: courseId,
@@ -29,23 +28,6 @@ export function ModuleForm({ courseId, initialData, mode }: ModuleFormProps) {
       video_url: null,
     }
   );
-
-  useEffect(() => {
-    const fetchExercises = async () => {
-      try {
-        const response = await fetch("/api/exercises");
-        if (!response.ok) {
-          throw new Error("Erreur lors de la récupération des exercices");
-        }
-        const data = await response.json();
-        setExercises(data);
-      } catch (err) {
-        console.error("Erreur:", err);
-      }
-    };
-
-    fetchExercises();
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -112,7 +94,10 @@ export function ModuleForm({ courseId, initialData, mode }: ModuleFormProps) {
                 id="title"
                 value={formData.title}
                 onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, title: e.target.value }))
+                  setFormData((prev: Module) => ({
+                    ...prev,
+                    title: e.target.value,
+                  }))
                 }
                 className="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
                 required
@@ -130,7 +115,7 @@ export function ModuleForm({ courseId, initialData, mode }: ModuleFormProps) {
                 id="description"
                 value={formData.description}
                 onChange={(e) =>
-                  setFormData((prev) => ({
+                  setFormData((prev: Module) => ({
                     ...prev,
                     description: e.target.value,
                   }))
@@ -152,7 +137,7 @@ export function ModuleForm({ courseId, initialData, mode }: ModuleFormProps) {
                 id="type"
                 value={formData.type}
                 onChange={(e) =>
-                  setFormData((prev) => ({
+                  setFormData((prev: Module) => ({
                     ...prev,
                     type: e.target.value as Module["type"],
                     exercise_id: null,
@@ -181,7 +166,7 @@ export function ModuleForm({ courseId, initialData, mode }: ModuleFormProps) {
                   id="video_url"
                   value={formData.video_url || ""}
                   onChange={(e) =>
-                    setFormData((prev) => ({
+                    setFormData((prev: Module) => ({
                       ...prev,
                       video_url: e.target.value,
                     }))
@@ -189,36 +174,6 @@ export function ModuleForm({ courseId, initialData, mode }: ModuleFormProps) {
                   className="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
                   required
                 />
-              </div>
-            )}
-
-            {formData.type === "exercise" && (
-              <div>
-                <label
-                  htmlFor="exercise_id"
-                  className="text-sm font-medium text-foreground"
-                >
-                  Exercice
-                </label>
-                <select
-                  id="exercise_id"
-                  value={formData.exercise_id || ""}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      exercise_id: e.target.value,
-                    }))
-                  }
-                  className="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-                  required
-                >
-                  <option value="">Sélectionner un exercice</option>
-                  {exercises.map((exercise) => (
-                    <option key={exercise.id} value={exercise.id}>
-                      {exercise.title}
-                    </option>
-                  ))}
-                </select>
               </div>
             )}
 
@@ -233,7 +188,10 @@ export function ModuleForm({ courseId, initialData, mode }: ModuleFormProps) {
                 id="content"
                 value={formData.content}
                 onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, content: e.target.value }))
+                  setFormData((prev: Module) => ({
+                    ...prev,
+                    content: e.target.value,
+                  }))
                 }
                 rows={10}
                 className="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
@@ -253,7 +211,7 @@ export function ModuleForm({ courseId, initialData, mode }: ModuleFormProps) {
                 id="order"
                 value={formData.order}
                 onChange={(e) =>
-                  setFormData((prev) => ({
+                  setFormData((prev: Module) => ({
                     ...prev,
                     order: parseInt(e.target.value),
                   }))

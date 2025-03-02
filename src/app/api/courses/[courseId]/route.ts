@@ -1,5 +1,6 @@
 import { createServerClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 
 export async function GET(
   request: Request,
@@ -18,7 +19,7 @@ export async function GET(
 
     // Vérifier le token
     const token = authHeader.replace("Bearer ", "");
-    const supabase = createServerClient(token);
+    const supabase = createServerClient();
 
     const {
       data: { user },
@@ -33,6 +34,8 @@ export async function GET(
     console.log("Utilisateur authentifié:", {
       userId: user.id,
       email: user.email,
+      role: user.role,
+      metadata: user.user_metadata,
     });
 
     console.log("Récupération du cours...");
@@ -91,7 +94,7 @@ export async function PUT(
 
     // Vérifier le token
     const token = authHeader.replace("Bearer ", "");
-    const supabase = createServerClient(token);
+    const supabase = createServerClient();
 
     const {
       data: { user },
@@ -105,10 +108,13 @@ export async function PUT(
     console.log("Vérification du rôle:", {
       userId: user.id,
       userMetadata: user.user_metadata,
-      isAdmin: user.user_metadata?.role === "admin",
+      role: user.role,
+      isAdmin: user.role === "admin" || user.user_metadata?.role === "admin",
     });
 
-    if (user.user_metadata?.role !== "admin") {
+    const isAdmin =
+      user.role === "admin" || user.user_metadata?.role === "admin";
+    if (!isAdmin) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
     }
 
@@ -173,7 +179,7 @@ export async function DELETE(
 
     // Vérifier le token
     const token = authHeader.replace("Bearer ", "");
-    const supabase = createServerClient(token);
+    const supabase = createServerClient();
 
     const {
       data: { user },
@@ -184,14 +190,17 @@ export async function DELETE(
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
     }
 
-    // Vérifier le rôle admin
-    const { data: userData } = await supabase
-      .from("users")
-      .select("role")
-      .eq("id", user.id)
-      .single();
+    console.log("Vérification du rôle:", {
+      userId: user.id,
+      userMetadata: user.user_metadata,
+      role: user.role,
+      isAdmin: user.role === "admin" || user.user_metadata?.role === "admin",
+    });
 
-    if (userData?.role !== "admin") {
+    // Vérifier le rôle admin
+    const isAdmin =
+      user.role === "admin" || user.user_metadata?.role === "admin";
+    if (!isAdmin) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
     }
 
