@@ -13,6 +13,7 @@ import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 import { useForumStore } from "@/store/forum-store";
 import { Comment } from "@/types/forum";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 
 interface CommentSectionProps {
   postId: string;
@@ -195,7 +196,14 @@ export function CommentSection({
                   </Avatar>
                   <div className="flex-1">
                     <div className="flex items-center justify-between mb-2">
-                      <h3 className="font-medium">{comment.author.name}</h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-medium">{comment.author.name}</h3>
+                        {comment.author.role === "admin" && (
+                          <Badge variant="secondary" className="text-xs">
+                            Admin
+                          </Badge>
+                        )}
+                      </div>
                       <p className="text-sm text-gray-400">
                         {comment.created_at
                           ? formatDistanceToNow(new Date(comment.created_at), {

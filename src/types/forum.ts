@@ -8,6 +8,7 @@ export interface ForumPost {
     id: string;
     name: string;
     avatar: string;
+    role?: string;
   };
   likesCount: number;
   repliesCount: number;
@@ -21,6 +22,7 @@ export interface Comment {
     id: string;
     name: string;
     avatar: string;
+    role?: string;
   };
 }
 

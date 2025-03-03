@@ -282,8 +282,17 @@ export const useForumStore = create<ForumStore>((set, get) => ({
 
       if (commentsError) throw commentsError;
 
-      // Récupérer les profils des auteurs
+      // Récupérer les profils et les rôles des auteurs
       const userIds = comments?.map((comment) => comment.user_id) || [];
+      const { data: users, error: usersError } = await supabase.rpc(
+        "admin_fetch_user_metadata",
+        { user_ids: userIds }
+      );
+
+      if (usersError) {
+        console.error("Error fetching user roles:", usersError);
+      }
+
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
         .select("*")
@@ -291,15 +300,22 @@ export const useForumStore = create<ForumStore>((set, get) => ({
 
       if (profilesError) throw profilesError;
 
-      // Créer un map des profils pour un accès rapide
+      // Créer un map des profils et des rôles pour un accès rapide
       const profileMap = new Map(
         profiles?.map((profile) => [profile.id, profile])
+      );
+      const roleMap = new Map(
+        users?.map((user: { id: string; metadata: { role?: string } }) => [
+          user.id,
+          user.metadata?.role,
+        ]) || []
       );
 
       // Formater les commentaires
       const formattedComments: Comment[] =
         comments?.map((comment) => {
           const profile = profileMap.get(comment.user_id);
+          const role = roleMap.get(comment.user_id);
           return {
             id: comment.id,
             content: comment.content,
@@ -308,6 +324,7 @@ export const useForumStore = create<ForumStore>((set, get) => ({
               id: comment.user_id,
               name: profile?.username || "Utilisateur inconnu",
               avatar: profile?.avatar_url || "https://via.placeholder.com/150",
+              role: typeof role === "string" ? role : undefined,
             },
           };
         }) || [];
@@ -416,6 +433,7 @@ export const useForumStore = create<ForumStore>((set, get) => ({
           id: comment.user_id,
           name: profile?.username || "Utilisateur inconnu",
           avatar: profile?.avatar_url || "https://via.placeholder.com/150",
+          role: session.user.user_metadata?.role || null,
         },
       };
 
