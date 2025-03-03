@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Loader2, MessageSquare, Reply, ThumbsUp } from "lucide-react";
+import { Loader2, MessageSquare, Reply, ThumbsUp, Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { ErrorMessage } from "@/components/ui/error-message";
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
@@ -30,7 +30,8 @@ export function CommentSection({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { user, isAuthenticated } = useAuth();
-  const { fetchComments, addComment } = useForumStore();
+  const { fetchComments, addComment, deleteComment } = useForumStore();
+  const [isDeletingId, setIsDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (initialComments) {
@@ -122,6 +123,41 @@ export function CommentSection({
     setReplyToComment(null);
   };
 
+  const handleDelete = async (commentId: string) => {
+    if (!user) return;
+
+    const comment = comments.find((c) => c.id === commentId);
+    if (!comment || comment.author.id !== user.id) {
+      toast.error("Vous n'êtes pas autorisé à supprimer ce commentaire");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Êtes-vous sûr de vouloir supprimer ce commentaire ?"
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setIsDeletingId(commentId);
+      const success = await deleteComment(commentId);
+
+      if (success) {
+        setComments((prev) => prev.filter((c) => c.id !== commentId));
+        toast.success("Commentaire supprimé avec succès");
+      } else {
+        throw new Error("Erreur lors de la suppression");
+      }
+    } catch (error) {
+      console.error("Error deleting comment:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Une erreur est survenue"
+      );
+    } finally {
+      setIsDeletingId(null);
+    }
+  };
+
   return (
     <div className="bg-card rounded-lg p-6">
       <h2 className="text-xl font-bold mb-6 flex items-center">
@@ -161,10 +197,12 @@ export function CommentSection({
                     <div className="flex items-center justify-between mb-2">
                       <h3 className="font-medium">{comment.author.name}</h3>
                       <p className="text-sm text-gray-400">
-                        {formatDistanceToNow(new Date(comment.createdAt), {
-                          addSuffix: true,
-                          locale: fr,
-                        })}
+                        {comment.created_at
+                          ? formatDistanceToNow(new Date(comment.created_at), {
+                              addSuffix: true,
+                              locale: fr,
+                            })
+                          : "Date inconnue"}
                       </p>
                     </div>
                     <div className="prose prose-invert prose-sm max-w-none">
@@ -180,6 +218,20 @@ export function CommentSection({
                         <Reply className="h-3 w-3 mr-1" />
                         Répondre
                       </Button>
+                      {comment.author.id === user?.id && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDelete(comment.id)}
+                          disabled={isDeletingId === comment.id}
+                        >
+                          {isDeletingId === comment.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          )}
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </div>

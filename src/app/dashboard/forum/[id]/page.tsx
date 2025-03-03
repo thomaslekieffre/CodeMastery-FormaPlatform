@@ -11,6 +11,7 @@ import {
   Share2,
   Loader2,
   AlertCircle,
+  Trash2,
 } from "lucide-react";
 import { useForumStore } from "@/store/forum-store";
 import { ForumPost, Comment } from "@/types/forum";
@@ -35,7 +36,8 @@ export default function ForumPostPage() {
   const [hasLiked, setHasLiked] = useState(false);
   const [isLikeLoading, setIsLikeLoading] = useState(false);
   const forumStore = useForumStore();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -145,6 +147,41 @@ export default function ForumPostPage() {
     }
   };
 
+  const handleDelete = async () => {
+    if (!post || !user) return;
+
+    // Vérifier si l'utilisateur est l'auteur ou admin
+    if (post.author.id !== user.id) {
+      toast.error("Vous n'êtes pas autorisé à supprimer ce post");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Êtes-vous sûr de vouloir supprimer ce post ? Cette action est irréversible."
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setIsDeleting(true);
+      const success = await forumStore.deletePost(post.id);
+
+      if (success) {
+        toast.success("Post supprimé avec succès");
+        router.push("/dashboard/forum");
+      } else {
+        throw new Error("Erreur lors de la suppression");
+      }
+    } catch (error) {
+      console.error("Error deleting post:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Une erreur est survenue"
+      );
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[60vh]">
@@ -167,10 +204,26 @@ export default function ForumPostPage() {
 
   return (
     <div className="container py-8">
-      <Button variant="ghost" onClick={handleGoBack} className="mb-6">
-        <ArrowLeft className="w-4 h-4 mr-2" />
-        Retour
-      </Button>
+      <div className="flex justify-between items-center mb-6">
+        <Button variant="ghost" onClick={handleGoBack}>
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Retour
+        </Button>
+        {post.author.id === user?.id && (
+          <Button
+            variant="destructive"
+            onClick={handleDelete}
+            disabled={isDeleting}
+          >
+            {isDeleting ? (
+              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+            ) : (
+              <Trash2 className="w-4 h-4 mr-2" />
+            )}
+            Supprimer
+          </Button>
+        )}
+      </div>
 
       <div className="bg-card rounded-lg shadow-sm p-6 mb-8">
         <div className="flex items-center gap-3 mb-4">
@@ -181,10 +234,12 @@ export default function ForumPostPage() {
           <div>
             <p className="font-medium">{post.author.name}</p>
             <p className="text-sm text-muted-foreground">
-              {formatDistanceToNow(new Date(post.createdAt), {
-                addSuffix: true,
-                locale: fr,
-              })}
+              {post.created_at
+                ? formatDistanceToNow(new Date(post.created_at), {
+                    addSuffix: true,
+                    locale: fr,
+                  })
+                : "Date inconnue"}
             </p>
           </div>
         </div>

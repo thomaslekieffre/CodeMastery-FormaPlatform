@@ -35,10 +35,12 @@ export function ForumCard({ post }: ForumCardProps) {
                 {post.author.name}
               </Heading>
               <Paragraph size="sm" colorScheme="muted">
-                {formatDistanceToNow(new Date(post.createdAt), {
-                  addSuffix: true,
-                  locale: fr,
-                })}
+                {post.created_at
+                  ? formatDistanceToNow(new Date(post.created_at), {
+                      addSuffix: true,
+                      locale: fr,
+                    })
+                  : "Date inconnue"}
               </Paragraph>
             </div>
           </div>

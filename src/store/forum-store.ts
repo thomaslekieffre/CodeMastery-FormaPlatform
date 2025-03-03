@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { ForumFilter, ForumPost, Comment } from "@/types/forum";
 import { supabase } from "@/lib/supabase/client";
 import { PostgrestError } from "@supabase/supabase-js";
+import { createClient } from "@/lib/supabase/client";
 
 interface ForumStore {
   posts: ForumPost[];
@@ -19,6 +20,8 @@ interface ForumStore {
   likePost: (postId: string) => Promise<boolean>;
   unlikePost: (postId: string) => Promise<boolean>;
   checkIfUserLikedPost: (postId: string) => Promise<boolean>;
+  deletePost: (postId: string) => Promise<boolean>;
+  deleteComment: (commentId: string) => Promise<boolean>;
 }
 
 const handleError = (error: unknown) => {
@@ -139,11 +142,12 @@ export const useForumStore = create<ForumStore>((set, get) => ({
             title: post.title,
             content: post.content,
             category: post.category || "Général",
-            createdAt: post.created_at,
+            created_at: post.created_at,
             likesCount: post.likes || 0,
             repliesCount: post.replies || 0,
             authorId: post.user_id,
             author: {
+              id: post.user_id,
               name: profile?.username || "Utilisateur inconnu",
               avatar: profile?.avatar_url || "https://via.placeholder.com/150",
             },
@@ -204,11 +208,11 @@ export const useForumStore = create<ForumStore>((set, get) => ({
         title: post.title,
         content: post.content,
         category: post.category || "Général",
-        createdAt: post.created_at,
+        created_at: post.created_at,
         likesCount: post.likes || 0,
         repliesCount: post.replies || 0,
-        authorId: post.user_id,
         author: {
+          id: post.user_id,
           name: profile?.username || "Utilisateur inconnu",
           avatar: profile?.avatar_url || "https://via.placeholder.com/150",
         },
@@ -299,7 +303,7 @@ export const useForumStore = create<ForumStore>((set, get) => ({
           return {
             id: comment.id,
             content: comment.content,
-            createdAt: comment.created_at,
+            created_at: comment.created_at,
             author: {
               id: comment.user_id,
               name: profile?.username || "Utilisateur inconnu",
@@ -407,7 +411,7 @@ export const useForumStore = create<ForumStore>((set, get) => ({
       const formattedComment: Comment = {
         id: comment.id,
         content: comment.content,
-        createdAt: comment.created_at,
+        created_at: comment.created_at,
         author: {
           id: comment.user_id,
           name: profile?.username || "Utilisateur inconnu",
@@ -595,6 +599,47 @@ export const useForumStore = create<ForumStore>((set, get) => ({
       return !!data;
     } catch (error) {
       console.error("Error checking like status:", error);
+      return false;
+    }
+  },
+
+  deletePost: async (postId) => {
+    try {
+      const response = await fetch(`/api/forum/posts/${postId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Erreur lors de la suppression");
+      }
+
+      // Mettre à jour la liste des posts
+      set((state) => ({
+        posts: state.posts.filter((post) => post.id !== postId),
+      }));
+
+      return true;
+    } catch (error) {
+      console.error("Error deleting post:", error);
+      return false;
+    }
+  },
+
+  deleteComment: async (commentId) => {
+    try {
+      const response = await fetch(`/api/forum/comments/${commentId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Erreur lors de la suppression");
+      }
+
+      return true;
+    } catch (error) {
+      console.error("Error deleting comment:", error);
       return false;
     }
   },
