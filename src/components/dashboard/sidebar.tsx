@@ -26,6 +26,7 @@ import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import { useAppStore } from "@/store/use-app-store";
 import { useRouter } from "next/navigation";
+import { NotificationCenter } from "@/components/notifications/notification-center";
 
 const teacherRoutes = [
   {
@@ -210,6 +211,7 @@ export function Sidebar() {
         })}
       </nav>
       <div className="mt-auto px-4 pb-4">
+        <NotificationCenter className="p-3 mb-2" />
         {mounted && (
           <button
             type="button"
