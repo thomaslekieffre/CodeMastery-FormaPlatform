@@ -23,7 +23,7 @@ import { useAppStore } from "@/store/use-app-store";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 import type { Course, Module } from "@/types/database";
-import { createClient } from "@/lib/supabase/client";
+import { supabase } from "@/lib/supabase/client";
 
 interface CourseProgressResponse {
   totalModules: number;
@@ -56,14 +56,12 @@ export default function CourseDetailPage() {
     const fetchCourse = async () => {
       try {
         setLoading(true);
-        const supabase = createClient();
         const {
           data: { session },
         } = await supabase.auth.getSession();
 
         if (!session) {
           toast.error("Vous devez être connecté");
-          router.push("/login");
           return;
         }
 
@@ -87,7 +85,8 @@ export default function CourseDetailPage() {
               `/api/courses/${courseId}/progress`,
               {
                 headers: {
-                  Authorization: `Bearer ${session.access_token}`,
+                  Authorization: `Bearer ${session!.access_token}`,
+                  "Content-Type": "application/json",
                 },
               }
             );
@@ -120,7 +119,6 @@ export default function CourseDetailPage() {
     }
 
     try {
-      const supabase = createClient();
       const {
         data: { session },
       } = await supabase.auth.getSession();

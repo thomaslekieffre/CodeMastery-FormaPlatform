@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { Bell, RefreshCw } from "lucide-react";
+import { Bell, RefreshCw, Check } from "lucide-react";
 import { toast } from "sonner";
 
 import { useNotificationStore } from "@/store/notification-store";
@@ -13,6 +13,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 export function NotificationCenter({ className }: { className?: string }) {
   const {
@@ -22,6 +23,7 @@ export function NotificationCenter({ className }: { className?: string }) {
     error,
     initialize,
     fetchNotifications,
+    markAsRead,
   } = useNotificationStore();
 
   useEffect(() => {
@@ -34,6 +36,16 @@ export function NotificationCenter({ className }: { className?: string }) {
       toast.success("Notifications mises à jour");
     } catch (error) {
       toast.error("Erreur lors de la mise à jour des notifications");
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      const unreadNotifications = notifications.filter((n) => !n.is_read);
+      await Promise.all(unreadNotifications.map((n) => markAsRead(n.id)));
+      toast.success("Toutes les notifications ont été marquées comme lues");
+    } catch (error) {
+      toast.error("Erreur lors du marquage des notifications");
     }
   };
 
@@ -58,16 +70,27 @@ export function NotificationCenter({ className }: { className?: string }) {
       <SheetContent>
         <SheetHeader className="flex flex-row items-center justify-between">
           <SheetTitle>Notifications</SheetTitle>
-          <button
-            onClick={handleRefresh}
-            disabled={isLoading}
-            className={cn(
-              "rounded-full p-2 hover:bg-accent",
-              isLoading && "animate-spin"
+          <div className="flex gap-2">
+            {unreadCount > 0 && (
+              <Button
+                onClick={handleMarkAllAsRead}
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+              >
+                <Check className="h-4 w-4" />
+              </Button>
             )}
-          >
-            <RefreshCw className="h-4 w-4" />
-          </button>
+            <Button
+              onClick={handleRefresh}
+              disabled={isLoading}
+              variant="outline"
+              size="icon"
+              className={cn("h-8 w-8", isLoading && "animate-spin")}
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          </div>
         </SheetHeader>
 
         {isLoading ? (
@@ -91,6 +114,9 @@ export function NotificationCenter({ className }: { className?: string }) {
                   "rounded-lg border p-4 transition-colors",
                   !notification.is_read && "bg-accent"
                 )}
+                onClick={() =>
+                  !notification.is_read && markAsRead(notification.id)
+                }
               >
                 <p className="text-sm">{notification.content}</p>
                 {notification.link && (

@@ -59,11 +59,12 @@ declare
   mentioned_user_id uuid;
   post_title text;
 begin
-  -- Extraire les mentions (@username) du contenu
+  -- Extraire les mentions (@username et **@username**) du contenu
   for mentioned_user_id in
     select u.id
     from auth.users u
     where position('@' || u.raw_user_meta_data->>'username' in NEW.content) > 0
+    or position('**@' || u.raw_user_meta_data->>'username' || '**' in NEW.content) > 0
   loop
     -- Récupérer le titre du post
     select title into post_title

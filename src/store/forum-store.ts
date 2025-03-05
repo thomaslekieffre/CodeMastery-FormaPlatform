@@ -2,7 +2,6 @@ import { create } from "zustand";
 import { ForumFilter, ForumPost, Comment } from "@/types/forum";
 import { supabase } from "@/lib/supabase/client";
 import { PostgrestError } from "@supabase/supabase-js";
-import { createClient } from "@/lib/supabase/client";
 
 interface ForumStore {
   posts: ForumPost[];
@@ -36,25 +35,36 @@ const handleError = (error: unknown) => {
 const getCurrentSession = async () => {
   try {
     // Récupérer la session active
-    const { data, error } = await supabase.auth.getSession();
-    if (error) throw error;
+    const { data: sessionData, error: sessionError } =
+      await supabase.auth.getSession();
+    if (sessionError) throw sessionError;
 
-    // Vérifier si l'utilisateur est connecté
-    const session = data?.session;
-    if (!session?.access_token || !session?.user) {
+    const session = sessionData?.session;
+    if (!session) {
       throw new Error("Session invalide");
     }
 
-    // Mettre à jour le client Supabase avec le token
-    supabase.auth.setSession({
-      access_token: session.access_token,
-      refresh_token: session.refresh_token,
-    });
+    // Rafraîchir la session si nécessaire
+    if (
+      session.expires_at &&
+      new Date(session.expires_at * 1000) < new Date()
+    ) {
+      const {
+        data: { session: refreshedSession },
+        error: refreshError,
+      } = await supabase.auth.refreshSession();
+
+      if (refreshError) throw refreshError;
+      if (!refreshedSession)
+        throw new Error("Impossible de rafraîchir la session");
+
+      return refreshedSession;
+    }
 
     return session;
   } catch (error) {
     console.error("Session error:", error);
-    throw new Error("Veuillez vous connecter pour créer une discussion");
+    throw new Error("Veuillez vous reconnecter pour continuer");
   }
 };
 
@@ -342,110 +352,30 @@ export const useForumStore = create<ForumStore>((set, get) => ({
   addComment: async (postId, content) => {
     set({ isLoading: true, error: null });
     try {
-      // Vérifier la session d'abord
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session?.user) {
-        throw new Error("Veuillez vous connecter pour ajouter un commentaire");
-      }
-
-      console.log("Ajout d'un commentaire:", {
-        postId,
-        content,
-        userId: session.user.id,
+      const response = await fetch("/api/forum/comments", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ postId, content }),
+        credentials: "include",
       });
 
-      // Ajouter le commentaire
-      const { data: comments, error: commentError } = await supabase
-        .from("comments")
-        .insert({
-          post_id: postId,
-          user_id: session.user.id,
-          content,
-          created_at: new Date().toISOString(),
-        })
-        .select();
-
-      if (commentError) {
-        console.error("Erreur lors de l'ajout du commentaire:", commentError);
-        throw new Error(
-          commentError.message || "Erreur lors de l'ajout du commentaire"
-        );
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Une erreur est survenue");
       }
 
-      if (!comments || comments.length === 0) {
-        console.error("Aucun commentaire retourné après insertion");
-        throw new Error("Erreur lors de l'ajout du commentaire");
-      }
-
-      // Prendre le premier commentaire retourné
-      const comment = comments[0];
-      console.log("Commentaire ajouté avec succès:", comment);
-
-      // Récupérer le profil de l'auteur
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", session.user.id)
-        .single();
-
-      if (profileError) {
-        console.error(
-          "Erreur lors de la récupération du profil:",
-          profileError
-        );
-        throw new Error(
-          profileError.message || "Erreur lors de la récupération du profil"
-        );
-      }
-
-      if (!profile) {
-        console.error("Profil non trouvé pour l'utilisateur:", session.user.id);
-      }
-
-      try {
-        // Mettre à jour le compteur de réponses du post
-        const { error: rpcError } = await supabase.rpc("increment_replies", {
-          post_id: postId,
-        });
-        if (rpcError) {
-          console.error(
-            "Erreur lors de l'incrémentation des réponses:",
-            rpcError
-          );
-          // On continue malgré l'erreur pour ne pas bloquer l'ajout du commentaire
-        }
-      } catch (rpcError) {
-        console.error(
-          "Exception lors de l'incrémentation des réponses:",
-          rpcError
-        );
-        // On continue malgré l'erreur
-      }
-
-      // Formater le commentaire
-      const formattedComment: Comment = {
-        id: comment.id,
-        content: comment.content,
-        created_at: comment.created_at,
-        author: {
-          id: comment.user_id,
-          name: profile?.username || "Utilisateur inconnu",
-          avatar: profile?.avatar_url || "https://via.placeholder.com/150",
-          role: session.user.user_metadata?.role || null,
-        },
-      };
-
-      return formattedComment;
+      const comment = await response.json();
+      return comment;
     } catch (error) {
       console.error("Error adding comment:", error);
       const errorMessage =
         error instanceof Error
           ? error.message
-          : "Une erreur inattendue s'est produite lors de l'ajout du commentaire";
+          : "Une erreur inattendue s'est produite";
       set({ error: errorMessage });
-      throw new Error(errorMessage);
+      throw error;
     } finally {
       set({ isLoading: false });
     }

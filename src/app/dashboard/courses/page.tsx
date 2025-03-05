@@ -11,7 +11,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { useAppStore } from "@/store/use-app-store";
 import type { Course } from "@/types/database";
-import { createClient } from "@/lib/supabase/client";
+import { supabase } from "@/lib/supabase/client";
 
 export default function CoursesPage() {
   const [courses, setCourses] = useState<Course[]>([]);
@@ -24,7 +24,6 @@ export default function CoursesPage() {
     const fetchCourses = async () => {
       try {
         setLoading(true);
-        const supabase = createClient();
         const {
           data: { session },
         } = await supabase.auth.getSession();
@@ -60,7 +59,6 @@ export default function CoursesPage() {
     if (!confirm("Êtes-vous sûr de vouloir supprimer ce cours ?")) return;
 
     try {
-      const supabase = createClient();
       const {
         data: { session },
       } = await supabase.auth.getSession();
