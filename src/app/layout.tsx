@@ -5,7 +5,7 @@ import { Toaster } from "sonner";
 import { ThemeProvider } from "@/components/theme-provider";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
-import { createClient } from "@/lib/supabase/client";
+import { AnimationsProvider } from "@/components/settings/animations-provider";
 
 export const metadata = {
   title: "CodeMastery",
@@ -31,6 +31,7 @@ export default function RootLayout({
           <AuthProvider>
             <Toaster position="top-center" />
             <ProfileSetupModal />
+            <AnimationsProvider />
             {children}
           </AuthProvider>
         </ThemeProvider>

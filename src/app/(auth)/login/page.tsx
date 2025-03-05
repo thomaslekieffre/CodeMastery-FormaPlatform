@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { supabase } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -14,7 +14,6 @@ export default function LoginPage() {
 
   useEffect(() => {
     const checkSession = async () => {
-      const supabase = createClient();
       const {
         data: { session },
       } = await supabase.auth.getSession();
@@ -34,7 +33,6 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const supabase = createClient();
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {

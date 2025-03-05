@@ -29,6 +29,12 @@ body {
     color 0.2s ease;
 }
 
+/* Désactiver les animations */
+.no-animations * {
+  transition: none !important;
+  animation: none !important;
+}
+
 /* Variables de thème */
 @layer base {
   :root {
