@@ -20,7 +20,7 @@ import {
 import { toast } from "sonner";
 import Link from "next/link";
 import type { Course, Module } from "@/types/database";
-import { createClient } from "@/lib/supabase/client";
+import { supabase } from "@/lib/supabase/client";
 import {
   DndContext,
   closestCenter,
@@ -137,7 +137,6 @@ export default function ManageModulesPage() {
     const fetchCourseAndModules = async () => {
       try {
         setLoading(true);
-        const supabase = createClient();
         const {
           data: { session },
         } = await supabase.auth.getSession();
@@ -187,7 +186,6 @@ export default function ManageModulesPage() {
     if (!confirm("Êtes-vous sûr de vouloir supprimer ce module ?")) return;
 
     try {
-      const supabase = createClient();
       const {
         data: { session },
       } = await supabase.auth.getSession();
@@ -229,7 +227,6 @@ export default function ManageModulesPage() {
         // Mettre à jour l'ordre sur le serveur
         const updateOrder = async () => {
           try {
-            const supabase = createClient();
             const {
               data: { session },
             } = await supabase.auth.getSession();

@@ -25,12 +25,17 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const supabase = createServerClient();
+    const authHeader = request.headers.get("Authorization");
 
-    // Vérifier l'authentification
+    if (!authHeader) {
+      return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
+    }
+
+    const token = authHeader.replace("Bearer ", "");
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser();
+    } = await supabase.auth.getUser(token);
 
     if (!user || authError) {
       return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
@@ -64,24 +69,30 @@ export async function POST(request: Request) {
       );
     }
 
+    // Nettoyage des données
+    const courseData = {
+      title: data.title.trim(),
+      description: data.description.trim(),
+      difficulty: data.difficulty,
+      duration: data.duration.trim(),
+      image_url: data.image_url || null,
+      sort_order: data.sort_order || 0,
+      created_by: user.id,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
     // Insérer le cours
-    const { data: courseData, error: courseError } = await supabase
+    const { data: insertedCourse, error: courseError } = await supabase
       .from("courses")
-      .insert([
-        {
-          ...data,
-          created_by: user.id,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-      ])
+      .insert([courseData])
       .select()
       .single();
 
     if (courseError) {
       console.error("Erreur lors de la création du cours:", {
         error: courseError,
-        data,
+        data: courseData,
       });
       return NextResponse.json(
         {
@@ -92,7 +103,7 @@ export async function POST(request: Request) {
       );
     }
 
-    return NextResponse.json(courseData);
+    return NextResponse.json(insertedCourse);
   } catch (error) {
     console.error("Error:", error);
     return NextResponse.json(

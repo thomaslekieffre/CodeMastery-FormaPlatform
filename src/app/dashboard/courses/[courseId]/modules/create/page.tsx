@@ -14,7 +14,7 @@ import { ArrowLeft, FileText, Code, PlayCircle } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 import type { Course } from "@/types/database";
-import { createClient } from "@/lib/supabase/client";
+import { supabase } from "@/lib/supabase/client";
 
 interface FormData {
   title: string;
@@ -49,7 +49,6 @@ export default function CreateModulePage() {
     const fetchCourse = async () => {
       try {
         setLoading(true);
-        const supabase = createClient();
         const {
           data: { session },
         } = await supabase.auth.getSession();
@@ -87,7 +86,6 @@ export default function CreateModulePage() {
     setSaving(true);
 
     try {
-      const supabase = createClient();
       const {
         data: { session },
       } = await supabase.auth.getSession();

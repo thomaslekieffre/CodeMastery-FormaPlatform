@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { supabase } from "@/lib/supabase/client";
 
 interface FormData {
   title: string;
@@ -48,23 +49,39 @@ export default function CreateCoursePage() {
     setSaving(true);
 
     try {
+      // Nettoyage des données
+      const dataToSend = {
+        ...formData,
+        image_url: formData.image_url.trim() || null, // Si vide, on met null
+      };
+
       const response = await fetch("/api/courses", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${
+            (
+              await supabase.auth.getSession()
+            ).data.session?.access_token
+          }`,
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(dataToSend),
       });
 
       if (!response.ok) {
-        throw new Error("Erreur lors de la création du cours");
+        const error = await response.json();
+        throw new Error(
+          error.details?.message || "Erreur lors de la création du cours"
+        );
       }
 
       toast.success("Cours créé avec succès");
       router.push("/dashboard/courses");
     } catch (error) {
       console.error("Erreur:", error);
-      toast.error("Impossible de créer le cours");
+      toast.error(
+        error instanceof Error ? error.message : "Impossible de créer le cours"
+      );
     } finally {
       setSaving(false);
     }
@@ -150,10 +167,8 @@ export default function CreateCoursePage() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="facile">Débutant</SelectItem>
-                        <SelectItem value="intermediaire">
-                          Intermédiaire
-                        </SelectItem>
-                        <SelectItem value="avance">Avancé</SelectItem>
+                        <SelectItem value="moyen">Intermédiaire</SelectItem>
+                        <SelectItem value="difficile">Avancé</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
