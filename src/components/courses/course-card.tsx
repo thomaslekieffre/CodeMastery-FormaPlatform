@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Clock, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { Course, UserCourseProgress } from "@/types/database";
+import type { Course } from "@/types/database";
 
 type DifficultyColor = {
   [K in Course["difficulty"]]: string;
@@ -17,9 +17,14 @@ const difficultyColors: DifficultyColor = {
   difficile: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-100",
 };
 
+interface CourseProgress {
+  completed_modules: string[];
+  status: "not_started" | "in_progress" | "completed";
+}
+
 interface CourseCardProps {
   course: Course;
-  progress?: UserCourseProgress;
+  progress?: CourseProgress;
   href: string;
   totalModules?: number;
 }
@@ -81,7 +86,7 @@ export function CourseCard({
         <div
           className={cn(
             "inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold",
-            difficultyColors[course.difficulty]
+            difficultyColors[course.difficulty as keyof DifficultyColor]
           )}
         >
           {course.difficulty}

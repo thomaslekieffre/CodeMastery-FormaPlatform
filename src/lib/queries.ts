@@ -1,12 +1,26 @@
-import { createClient } from "@/lib/supabase/client";
+import { supabase } from "@/lib/supabase/client";
+import type { Course, Module } from "@/types/database";
 
-const supabase = createClient();
+interface CourseWithModules extends Course {
+  modules: Module[];
+}
+
+interface CourseProgress {
+  id: string;
+  user_id: string;
+  course_id: string;
+  status: "not_started" | "in_progress" | "completed";
+  completed_modules: string[];
+  completed_at?: string;
+  created_at: string;
+  updated_at: string;
+  courses?: CourseWithModules;
+}
 
 // Parcours
-export async function getCourses() {
+export async function getCourses(): Promise<Course[]> {
   try {
     console.log("Début getCourses");
-    const supabase = createClient();
 
     // Test de connexion
     const {
@@ -55,7 +69,7 @@ export async function getCourses() {
   }
 }
 
-export async function getCourseById(id: string) {
+export async function getCourseById(id: string): Promise<CourseWithModules> {
   const { data: course, error: courseError } = await supabase
     .from("courses")
     .select("*")
@@ -74,12 +88,12 @@ export async function getCourseById(id: string) {
 
   return {
     ...course,
-    modules,
+    modules: modules || [],
   };
 }
 
 // Modules
-export async function getModuleById(id: string) {
+export async function getModuleById(id: string): Promise<Module> {
   const { data, error } = await supabase
     .from("modules")
     .select("*")
@@ -91,7 +105,9 @@ export async function getModuleById(id: string) {
 }
 
 // Progression des parcours
-export async function getUserCourseProgress(userId: string) {
+export async function getUserCourseProgress(
+  userId: string
+): Promise<CourseProgress[]> {
   try {
     console.log("Récupération de la progression pour userId:", userId);
 
@@ -111,11 +127,11 @@ export async function getUserCourseProgress(userId: string) {
 
     // Recalculer le statut pour chaque cours
     const updatedProgress =
-      progress?.map((p) => {
+      progress?.map((p: CourseProgress) => {
         const modules = p.courses?.modules || [];
         const isFullyCompleted =
           modules.length > 0 &&
-          modules.every((module: { id: string }) =>
+          modules.every((module: Module) =>
             p.completed_modules.includes(module.id)
           );
 
@@ -160,7 +176,10 @@ export async function getUserCourseProgress(userId: string) {
   }
 }
 
-export async function getCourseProgress(userId: string, courseId: string) {
+export async function getCourseProgress(
+  userId: string,
+  courseId: string
+): Promise<CourseProgress | null> {
   const { data, error } = await supabase
     .from("user_course_progress")
     .select("*")
@@ -191,8 +210,7 @@ export async function updateCourseProgress({
   courseId,
   moduleId,
   completed,
-}: UpdateCourseProgressParams) {
-  const supabase = createClient();
+}: UpdateCourseProgressParams): Promise<void> {
   const { error } = await supabase.from("module_progress").upsert({
     user_id: userId,
     course_id: courseId,
@@ -209,8 +227,7 @@ export async function trackTime({
   courseId,
   moduleId,
   duration,
-}: TrackTimeParams) {
-  const supabase = createClient();
+}: TrackTimeParams): Promise<void> {
   const { error } = await supabase.from("module_time_spent").insert({
     user_id: userId,
     course_id: courseId,

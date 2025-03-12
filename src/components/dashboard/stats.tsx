@@ -8,12 +8,13 @@ import {
   YAxis,
   Tooltip,
   ResponsiveContainer,
+  TooltipProps,
 } from "recharts";
-import { getUserProgress, getUserCourseProgress } from "@/lib/queries";
+import { getUserCourseProgress } from "@/lib/queries";
 import { useAppStore } from "@/store/use-app-store";
 import { Card } from "@/components/ui/card";
 import { useTheme } from "next-themes";
-import type { UserProgress, UserCourseProgress } from "@/types/database";
+import type { Course, Module } from "@/types/database";
 
 interface StatsData {
   weeklyProgress: {
@@ -30,7 +31,16 @@ interface StatsData {
   }[];
 }
 
-const CustomTooltip = ({ active, payload, label, formatter }: any) => {
+interface CustomTooltipProps extends TooltipProps<any, any> {
+  formatter?: (value: any) => string;
+}
+
+const CustomTooltip = ({
+  active,
+  payload,
+  label,
+  formatter,
+}: CustomTooltipProps) => {
   if (active && payload && payload.length) {
     return (
       <div className="rounded-lg border bg-background p-3 shadow-sm">
@@ -63,10 +73,7 @@ export function DashboardStats() {
       if (!user) return;
 
       try {
-        const [progressData, courseProgressData] = await Promise.all([
-          getUserProgress(user.id),
-          getUserCourseProgress(user.id),
-        ]);
+        const courseProgressData = await getUserCourseProgress(user.id);
 
         // Calculer les statistiques hebdomadaires
         const weeklyProgress = Array.from({ length: 7 }, (_, i) => {
@@ -76,7 +83,7 @@ export function DashboardStats() {
 
           return {
             date: dateStr,
-            completed: progressData.filter(
+            completed: courseProgressData.filter(
               (p) =>
                 p.status === "completed" && p.completed_at?.startsWith(dateStr)
             ).length,
@@ -87,10 +94,9 @@ export function DashboardStats() {
         const difficultyStats = ["facile", "moyen", "difficile"].map(
           (difficulty) => ({
             difficulty,
-            completed: progressData.filter(
+            completed: courseProgressData.filter(
               (p) =>
-                p.status === "completed" &&
-                (p as any).exercises.difficulty === difficulty
+                p.status === "completed" && p.courses?.difficulty === difficulty
             ).length,
           })
         );
@@ -98,7 +104,7 @@ export function DashboardStats() {
         // Calculer les statistiques par heure
         const timeStats = Array.from({ length: 24 }, (_, hour) => ({
           hour,
-          count: progressData.filter((p) => {
+          count: courseProgressData.filter((p) => {
             const completedHour = p.completed_at
               ? new Date(p.completed_at).getHours()
               : -1;
