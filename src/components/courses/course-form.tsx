@@ -5,6 +5,17 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import type { Course } from "@/types/database";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface CourseFormProps {
   initialData?: Course;
@@ -18,6 +29,7 @@ interface FormData {
   duration: string;
   image_url: string;
   sort_order: number;
+  is_free: boolean;
 }
 
 const initialFormData: FormData = {
@@ -27,27 +39,25 @@ const initialFormData: FormData = {
   duration: "2h",
   image_url: "",
   sort_order: 0,
+  is_free: false,
 };
 
 export function CourseForm({ initialData, mode }: CourseFormProps) {
   const router = useRouter();
-  const [formData, setFormData] = useState<FormData>(
-    initialData
-      ? {
-          title: initialData.title,
-          description: initialData.description,
-          difficulty: initialData.difficulty,
-          duration: initialData.duration,
-          image_url: initialData.image_url || "",
-          sort_order: initialData.sort_order,
-        }
-      : initialFormData
-  );
-  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState<FormData>({
+    title: initialData?.title || "",
+    description: initialData?.description || "",
+    difficulty: initialData?.difficulty || "facile",
+    duration: initialData?.duration || "",
+    image_url: initialData?.image_url || "",
+    sort_order: initialData?.sort_order || 0,
+    is_free: initialData?.is_free || false,
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaving(true);
+    setLoading(true);
 
     try {
       const response = await fetch(
@@ -72,8 +82,20 @@ export function CourseForm({ initialData, mode }: CourseFormProps) {
         "Une erreur est survenue lors de la sauvegarde. Veuillez réessayer."
       );
     } finally {
-      setSaving(false);
+      setLoading(false);
     }
+  };
+
+  const handleChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
+  ) => {
+    const { name, value, type, checked } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
   };
 
   return (
@@ -92,131 +114,124 @@ export function CourseForm({ initialData, mode }: CourseFormProps) {
 
       <form onSubmit={handleSubmit} className="space-y-8">
         <div className="space-y-4">
-          <div>
-            <label htmlFor="title" className="mb-2 block text-sm font-medium">
-              Titre
-            </label>
-            <input
-              type="text"
-              id="title"
-              value={formData.title}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, title: e.target.value }))
-              }
-              className="w-full rounded-md border bg-background px-3 py-2"
-              required
-            />
+          <div className="grid gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="title">Titre</Label>
+              <Input
+                id="title"
+                name="title"
+                value={formData.title}
+                onChange={handleChange}
+                placeholder="Titre du cours"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                name="description"
+                value={formData.description}
+                onChange={handleChange}
+                placeholder="Description du cours"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="difficulty">Difficulté</Label>
+              <Select
+                name="difficulty"
+                value={formData.difficulty}
+                onValueChange={(value) =>
+                  handleChange({
+                    target: { name: "difficulty", value },
+                  } as any)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionnez la difficulté" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="facile">Facile</SelectItem>
+                  <SelectItem value="moyen">Moyen</SelectItem>
+                  <SelectItem value="difficile">Difficile</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="duration">Durée estimée</Label>
+              <Input
+                id="duration"
+                name="duration"
+                value={formData.duration}
+                onChange={handleChange}
+                placeholder="ex: 2h30"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="image_url">URL de l'image</Label>
+              <Input
+                id="image_url"
+                name="image_url"
+                value={formData.image_url}
+                onChange={handleChange}
+                placeholder="https://..."
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="sort_order">Ordre d'affichage</Label>
+              <Input
+                id="sort_order"
+                name="sort_order"
+                type="number"
+                value={formData.sort_order}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="is_free"
+                name="is_free"
+                checked={formData.is_free}
+                onChange={(e) =>
+                  handleChange({
+                    target: { name: "is_free", value: e.target.checked },
+                  } as any)
+                }
+                className="h-4 w-4 rounded border-gray-300"
+              />
+              <Label htmlFor="is_free">Cours gratuit</Label>
+            </div>
           </div>
 
-          <div>
-            <label
-              htmlFor="description"
-              className="mb-2 block text-sm font-medium"
+          <div className="flex justify-end space-x-4">
+            <Button
+              variant="outline"
+              onClick={() => router.back()}
+              disabled={loading}
             >
-              Description
-            </label>
-            <textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  description: e.target.value,
-                }))
-              }
-              className="w-full rounded-md border bg-background px-3 py-2"
-              rows={4}
-              required
-            />
+              Annuler
+            </Button>
+            <Button onClick={handleSubmit} disabled={loading}>
+              {loading ? (
+                <div className="flex items-center space-x-2">
+                  <div className="h-4 w-4 animate-spin rounded-full border-t-2 border-current" />
+                  <span>Enregistrement...</span>
+                </div>
+              ) : (
+                "Enregistrer"
+              )}
+            </Button>
           </div>
-
-          <div>
-            <label
-              htmlFor="difficulty"
-              className="mb-2 block text-sm font-medium"
-            >
-              Difficulté
-            </label>
-            <select
-              id="difficulty"
-              value={formData.difficulty}
-              onChange={(e) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  difficulty: e.target.value as Course["difficulty"],
-                }))
-              }
-              className="w-full rounded-md border bg-background px-3 py-2"
-              required
-            >
-              <option value="facile">Débutant</option>
-              <option value="moyen">Intermédiaire</option>
-              <option value="difficile">Avancé</option>
-            </select>
-          </div>
-
-          <div>
-            <label
-              htmlFor="duration"
-              className="mb-2 block text-sm font-medium"
-            >
-              Durée estimée
-            </label>
-            <input
-              type="text"
-              id="duration"
-              value={formData.duration}
-              onChange={(e) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  duration: e.target.value,
-                }))
-              }
-              className="w-full rounded-md border bg-background px-3 py-2"
-              required
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="image_url"
-              className="mb-2 block text-sm font-medium"
-            >
-              URL de l'image (optionnel)
-            </label>
-            <input
-              type="url"
-              id="image_url"
-              value={formData.image_url}
-              onChange={(e) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  image_url: e.target.value,
-                }))
-              }
-              className="w-full rounded-md border bg-background px-3 py-2"
-            />
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <button
-            type="submit"
-            disabled={saving}
-            className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-          >
-            {saving
-              ? "Enregistrement..."
-              : mode === "create"
-              ? "Créer le parcours"
-              : "Enregistrer les modifications"}
-          </button>
-          <Link
-            href="/admin/courses"
-            className="text-sm text-muted-foreground hover:text-foreground"
-          >
-            Annuler
-          </Link>
         </div>
       </form>
     </div>

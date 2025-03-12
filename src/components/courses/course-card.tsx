@@ -52,9 +52,21 @@ export function CourseCard({
 
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-2">
-          <h3 className="font-semibold leading-none tracking-tight">
-            {course.title}
-          </h3>
+          <div className="flex items-center gap-2">
+            <h3 className="font-semibold leading-none tracking-tight">
+              {course.title}
+            </h3>
+            <span
+              className={cn(
+                "inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold",
+                course.is_free
+                  ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-100"
+                  : "bg-violet-100 text-violet-700 dark:bg-violet-900 dark:text-violet-100"
+              )}
+            >
+              {course.is_free ? "GRATUIT" : "PREMIUM"}
+            </span>
+          </div>
           <p className="text-sm text-muted-foreground line-clamp-2">
             {course.description}
           </p>
