@@ -5,10 +5,33 @@ import type { Course } from "@/types/database";
 export async function GET(request: Request) {
   try {
     const supabase = createServerClient();
+
+    // Vérifier l'authentification
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (!user || authError) {
+      return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
+    }
+
+    // Vérifier si l'utilisateur a un abonnement actif
+    const { data: subscription } = await supabase
+      .from("user_subscriptions")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("status", "active")
+      .gte("current_period_end", new Date().toISOString())
+      .single();
+
+    // Si l'utilisateur a un abonnement actif, il peut voir tous les cours
+    // Sinon, il ne voit que les cours gratuits
     const { data: courses, error } = await supabase
       .from("courses")
       .select("*")
-      .order("sort_order", { ascending: true });
+      .order("sort_order", { ascending: true })
+      .or(subscription ? "id.gt.0" : "is_free.eq.true");
 
     if (error) throw error;
 

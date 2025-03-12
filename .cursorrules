@@ -135,7 +135,7 @@ CodeMastery est une plateforme éducative destinée aux "baby devs" pour apprend
 
 #### Authentification et Gestion des Utilisateurs
 
-- **Connexion via Clerk** (OAuth Discord, Email/MDP).
+- **Connexion via supabase auth** (magic link).
 - Gestion des rôles : **Admin, Formateur, Apprenant**.
 - Suivi de la progression des utilisateurs.
 

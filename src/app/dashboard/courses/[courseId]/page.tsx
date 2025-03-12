@@ -47,13 +47,17 @@ export default function CourseDetailPage() {
   const [loading, setLoading] = useState(true);
   const [courseProgress, setCourseProgress] =
     useState<CourseProgressResponse | null>(null);
+  const [subscription, setSubscription] = useState<{
+    status: string;
+    current_period_end: string;
+  } | null>(null);
   const { user } = useAppStore();
   const { isAuthenticated } = useAuth();
   const isAdmin =
     user?.role === "admin" || user?.user_metadata?.role === "admin";
 
   useEffect(() => {
-    const fetchCourse = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
         const {
@@ -65,9 +69,22 @@ export default function CourseDetailPage() {
           return;
         }
 
+        // Récupérer l'abonnement
+        const { data: subscriptionData } = await supabase
+          .from("user_subscriptions")
+          .select("*")
+          .eq("user_id", user?.id)
+          .eq("status", "active")
+          .gte("current_period_end", new Date().toISOString())
+          .single();
+
+        setSubscription(subscriptionData);
+
+        // Récupérer le cours
         const response = await fetch(`/api/courses/${courseId}`, {
           headers: {
             Authorization: `Bearer ${session.access_token}`,
+            "Content-Type": "application/json",
           },
         });
 
@@ -76,30 +93,30 @@ export default function CourseDetailPage() {
         }
 
         const { course } = await response.json();
+
+        // Vérifier l'accès au cours
+        if (!course.is_free && !subscriptionData && !isAdmin) {
+          toast.error("Ce cours nécessite un abonnement premium");
+          router.push("/dashboard/courses");
+          return;
+        }
+
         setCourse(course);
 
-        // Récupérer la progression si l'utilisateur est connecté
-        if (isAuthenticated) {
-          try {
-            const progressResponse = await fetch(
-              `/api/courses/${courseId}/progress`,
-              {
-                headers: {
-                  Authorization: `Bearer ${session!.access_token}`,
-                  "Content-Type": "application/json",
-                },
-              }
-            );
-            if (progressResponse.ok) {
-              const progressData = await progressResponse.json();
-              setCourseProgress(progressData);
-            }
-          } catch (error) {
-            console.error(
-              "Erreur lors de la récupération de la progression:",
-              error
-            );
+        // Récupérer la progression
+        const progressResponse = await fetch(
+          `/api/courses/${courseId}/progress`,
+          {
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+              "Content-Type": "application/json",
+            },
           }
+        );
+
+        if (progressResponse.ok) {
+          const progress = await progressResponse.json();
+          setCourseProgress(progress);
         }
       } catch (error) {
         console.error("Erreur:", error);
@@ -109,8 +126,8 @@ export default function CourseDetailPage() {
       }
     };
 
-    fetchCourse();
-  }, [courseId, isAuthenticated, router]);
+    fetchData();
+  }, [courseId, user, router, isAdmin]);
 
   const startCourse = async () => {
     if (!isAuthenticated) {
@@ -206,23 +223,33 @@ export default function CourseDetailPage() {
     <Container>
       <SectionWrapper>
         <div className="space-y-6">
-          <div className="flex items-center gap-2">
-            <Link href="/dashboard/courses">
-              <Button variant="ghost" size="icon">
-                <ArrowLeft className="h-5 w-5" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button variant="ghost" size="icon" onClick={() => router.back()}>
+                <ArrowLeft className="h-4 w-4" />
               </Button>
-            </Link>
-            <div>
-              <Heading as="h1" size="h1" className="mb-2">
-                {loading
-                  ? "Chargement..."
-                  : course?.title || "Cours non trouvé"}
-              </Heading>
-              <Paragraph className="text-muted-foreground">
-                {loading
-                  ? "Chargement des détails du cours..."
-                  : course?.description || ""}
-              </Paragraph>
+              <div>
+                <Heading as="h1" size="h1" className="mb-2">
+                  {course.title}
+                </Heading>
+                <div className="flex items-center gap-2">
+                  <span
+                    className={cn(
+                      "inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold",
+                      course.is_free
+                        ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-100"
+                        : "bg-violet-100 text-violet-700 dark:bg-violet-900 dark:text-violet-100"
+                    )}
+                  >
+                    {course.is_free ? "GRATUIT" : "PREMIUM"}
+                  </span>
+                  {!course.is_free && !subscription && !isAdmin && (
+                    <span className="text-sm text-muted-foreground">
+                      Abonnement premium requis
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 
